@@ -286,7 +286,7 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 </head>
 <body>
 <div class="video-bg" id="videoBg">
-<video autoplay muted loop playsinline webkit-playsinline preload="auto" id="bgVideo" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
+<video autoplay muted loop playsinline webkit-playsinline preload="auto" id="bgVideo">
 <source src="video/bg.mp4" type="video/mp4">
 </video>
 <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
@@ -437,6 +437,11 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 <div class="admin-chat-input-wrap">
 <input type="text" class="chat-input" id="adminChatInput" placeholder="Ответить..." onkeypress="if(event.key==='Enter')sendAdminReply()">
 <button class="chat-send" onclick="sendAdminReply()">➤</button></div>
+<div style="padding:0 20px 15px;display:flex;gap:8px">
+<button class="admin-btn danger" onclick="clearChatHistory()" style="flex:1">🗑️ Очистить историю</button>
+<button class="admin-btn success" onclick="resetClientBot()" style="flex:1">✅ Завершить заказ</button>
+<button class="admin-btn secondary" onclick="closeAdminChat()" style="flex:1">Закрыть</button>
+</div>
 </div></div>
 
 <script>
@@ -681,6 +686,8 @@ list.innerHTML=userIds.map(uid=>{
 const ch=state.chats[uid];
 const lastMsg=ch.messages[ch.messages.length-1];
 const lastText=lastMsg?(lastMsg.type==='bot'?'🤖 ':'')+((lastMsg.text||'').substring(0,50)):'';
+const botStatus=ch.botEnabled!==false?'Вкл':'Выкл';
+const botClass=ch.botEnabled!==false?'bot-on':'';
 const waitingClass=ch.waitingForOperator?'waiting':'';
 const statusClass=ch.waitingForOperator?'waiting':(ch.messages.length>2?'active':'idle');
 const statusText=ch.waitingForOperator?'⏳ Ожидание':'✅ Активен';
@@ -711,21 +718,35 @@ else h+='<div class="chat-msg system">'+esc(msg.text)+'</div>';
 });
 c.innerHTML=h;c.scrollTop=c.scrollHeight;
 }
+
+// ===== НОВАЯ ФУНКЦИЯ: СБРОС БОТА ДЛЯ НОВОГО ЗАКАЗА =====
+function resetClientBot(){
+if(!state.adminChatWith)return;
+const chat=state.chats[state.adminChatWith];
+if(!chat)return;
+chat.botStep='greet';
+chat.waitingForOperator=false;
+chat.selectedGirl=null;
+chat.botEnabled=true;
+saveState();
+addBotMessage(state.adminChatWith,'🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
+renderAdminChatMessages();
+showToast('Бот сброшен для нового заказа','success');
+}
+
 function sendAdminReply(){
 const inp=document.getElementById('adminChatInput'),text=inp.value.trim();
 if(!text||!state.adminChatWith)return;
 const uid=state.adminChatWith,ch=state.chats[uid];if(!ch)return;
 
-// Удаляем сообщение об обработке если оно есть
-if(ch.waitingForOperator){
-const lastMsgIndex = ch.messages.length - 1;
-if(lastMsgIndex >= 0 && ch.messages[lastMsgIndex].extra && ch.messages[lastMsgIndex].extra.type === 'processing'){
-ch.messages.splice(lastMsgIndex, 1);
-}
-ch.waitingForOperator = false;
-}
-
 ch.messages.push({type:'bot',text:'[Оператор] '+text,time:Date.now()});
+
+// ✅ АВТОМАТИЧЕСКИЙ СБРОС БОТА ПОСЛЕ ОТВЕТА ОПЕРАТОРА
+ch.waitingForOperator=false;
+ch.botStep='greet';      // Возвращаем бота в начало диалога
+ch.selectedGirl=null;    // Очищаем предыдущий выбор
+ch.botEnabled=true;      // Включаем бота для следующего клиента
+
 saveState();inp.value='';renderAdminChatMessages();renderAdminChats();renderChat();
 }
 function closeAdminChat(){
@@ -761,11 +782,25 @@ addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Вы выбрали:'
 addBotMessage(uid,'',{type:'profile',girl});
 addBotMessage(uid,'💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:',{type:'services',girl});
 }
+
 function processBotMessage(uid,text){
 const chat=state.chats[uid];if(!chat)return;
 const botOn=chat.botEnabled!==undefined?chat.botEnabled:true;
 if(!botOn){chat.waitingForOperator=true;saveState();return}
+
 const lower=text.toLowerCase();
+
+// 🔍 РАСПОЗНАВАНИЕ НОВОГО ЗАКАЗА
+const resetKeywords=['новый заказ','еще раз','опять','хочу еще','снова','заново','reset','сброс','еще хочу','хочу заказать'];
+if(resetKeywords.some(kw=>lower.includes(kw))){
+chat.botStep='greet';
+chat.waitingForOperator=false;
+chat.selectedGirl=null;
+saveState();
+addBotMessage(uid,'🔄 Начинаем новый заказ! Напишите ваш город:');
+return;
+}
+
 if(chat.botStep==='greet'||chat.botStep==='asking_city'){
 let fc=CITIES.find(c=>lower.includes(c.toLowerCase()));
 if(!fc){addBotMessage(uid,'Уточните ваш город (Луганск, Стаханов или Первомайск).');chat.botStep='asking_city';saveState();return}
@@ -790,6 +825,7 @@ chat.waitingForOperator=true;chat.botStep='waiting';saveState();return}
 if(chat.botStep==='waiting'){addBotMessage(uid,'Заявка в обработке, ожидайте.');return}
 addBotMessage(uid,'Напишите город для поиска анкет.');chat.botStep='greet';saveState();
 }
+
 function renderChat(){if(!state.currentUser)return;const uid=state.currentUser.username,chat=state.chats[uid];if(!chat)return;
 const c=document.getElementById('chatMessages'),ind=document.getElementById('chatIndicator');
 ind.classList.toggle('show',chat.waitingForOperator);
