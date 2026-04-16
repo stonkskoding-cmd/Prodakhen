@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema({
 });
 
 const chatSchema = new mongoose.Schema({
-  userId: { type: String, required: true },
+  userId: { type: String, required: true, unique: true },
   messages: [{
     type: { type: String, enum: ['user', 'bot', 'system'], required: true },
     text: String,
@@ -209,17 +209,19 @@ app.get('/api/chat/:username', async (req, res) => {
   try { const c = await Chat.findOne({ userId: req.params.username }); res.json({ messages: c?.messages || [] }); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// ✅ ADMIN: Get all chats sorted by activity
 app.get('/api/admin/chats', async (req, res) => {
   try { res.json(await Chat.find().sort({ lastActivity: -1 })); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// ✅ ADMIN: Reply to client
 app.post('/api/admin/chat/reply', async (req, res) => {
   try {
     const { userId, text } = req.body;
     const chat = await Chat.findOne({ userId });
     if (!chat) return res.status(404).json({ error: 'Chat not found' });
     
-    // Удаляем сообщение "processing" если оно последнее
+    // Remove processing message if present
     if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].extra?.type === 'processing') {
       chat.messages.pop();
     }
@@ -229,12 +231,13 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     chat.botStep = 'greet';
     chat.selectedGirl = null;
     chat.botEnabled = true;
+    chat.lastActivity = new Date();
     await chat.save();
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// ✅ НОВОЕ: Очистка истории чата
+// ✅ ADMIN: Clear chat messages
 app.put('/api/admin/chat/:userId/clear', async (req, res) => {
   try {
     const chat = await Chat.findOne({ userId: req.params.userId });
@@ -244,21 +247,26 @@ app.put('/api/admin/chat/:userId/clear', async (req, res) => {
       chat.botStep = 'greet';
       chat.selectedGirl = null;
       chat.botEnabled = true;
+      chat.lastActivity = new Date();
       await chat.save();
     }
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// ✅ ADMIN: Completely delete chat
 app.delete('/api/admin/chat/:userId', async (req, res) => {
-  try { await Chat.findOneAndDelete({ userId: req.params.userId }); res.json({ success: true }); } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  try {
+    await Chat.findOneAndDelete({ userId: req.params.userId });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.patch('/api/admin/chat/:userId/toggle-bot', async (req, res) => {
   try {
     const { enabled } = req.body;
     const chat = await Chat.findOne({ userId: req.params.userId });
-    if (chat) { chat.botEnabled = enabled; await chat.save(); }
+    if (chat) { chat.botEnabled = enabled; chat.lastActivity = new Date(); await chat.save(); }
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
