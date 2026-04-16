@@ -7,10 +7,8 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
-// ===== SECURITY & ANONYMITY =====
 app.set('trust proxy', 1);
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -19,23 +17,20 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Middleware
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ===== MONGODB CONNECTION =====
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('✅ MongoDB connected anonymously'))
+.then(() => console.log('✅ MongoDB connected'))
 .catch(err => {
-  console.error('❌ MongoDB connection error:', err.message);
+  console.error('❌ MongoDB error:', err.message);
   process.exit(1);
 });
 
-// ===== DATABASE MODELS =====
 const girlSchema = new mongoose.Schema({
   name: { type: String, required: true },
   city: { type: String, required: true },
@@ -86,80 +81,48 @@ const User = mongoose.model('User', userSchema);
 const Chat = mongoose.model('Chat', chatSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 
-// ===== INIT DEFAULT DATA =====
 async function initDefaults() {
-  const adminExists = await User.findOne({ username: 'admin' });
-  if (!adminExists) {
+  if (!(await User.findOne({ username: 'admin' }))) {
     await User.create({ username: 'admin', password: 'admin123', role: 'admin' });
-    console.log('✅ Default admin created: admin/admin123');
   }
-
-  const settingsExist = await Settings.findOne();
-  if (!settingsExist) {
-    await Settings.create({ 
-      mainTitle: 'Анкеты девушек', 
-      mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера',
-      title: 'BABYGIRL_LNR', 
-      phone: '', 
-      globalBotEnabled: true 
-    });
-    console.log('✅ Default settings created');
+  if (!(await Settings.findOne())) {
+    await Settings.create({ mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
   }
-
-  const girlsCount = await Girl.countDocuments();
-  if (girlsCount === 0) {
-    const defaultGirls = [
-      { name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная девушка, люблю долгие прогулки.', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{ name: 'Встреча', price: '3000' }, { name: 'Свидание', price: '5000' }, { name: 'Ночь', price: '10000' }] },
-      { name: 'Виктория', city: 'Стаханов', photos: [], desc: 'Яркая и страстная брюнетка с идеальной фигурой.', height: '172', weight: '55', breast: '3', age: '23', prefs: 'Танцы', services: [{ name: 'Встреча', price: '3500' }, { name: 'Свидание', price: '6000' }, { name: 'Ночь', price: '12000' }] },
-      { name: 'София', city: 'Первомайск', photos: [], desc: 'Студентка, модельная внешность.', height: '165', weight: '48', breast: '2', age: '20', prefs: 'Фотография', services: [{ name: 'Встреча', price: '2500' }, { name: 'Свидание', price: '4000' }, { name: 'Ночь', price: '8000' }] }
-    ];
-    await Girl.insertMany(defaultGirls);
-    console.log('✅ Default girls created');
+  if ((await Girl.countDocuments()) === 0) {
+    await Girl.insertMany([
+      { name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная девушка.', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{ name: 'Встреча', price: '3000' }, { name: 'Свидание', price: '5000' }, { name: 'Ночь', price: '10000' }] },
+      { name: 'Виктория', city: 'Стаханов', photos: [], desc: 'Яркая и страстная брюнетка.', height: '172', weight: '55', breast: '3', age: '23', prefs: 'Танцы', services: [{ name: 'Встреча', price: '3500' }, { name: 'Свидание', price: '6000' }, { name: 'Ночь', price: '12000' }] },
+      { name: 'София', city: 'Первомайск', photos: [], desc: 'Студентка, модельная внешность.', height: '165', weight: '48', breast: '2', age: '20', prefs: 'Фото', services: [{ name: 'Встреча', price: '2500' }, { name: 'Свидание', price: '4000' }, { name: 'Ночь', price: '8000' }] }
+    ]);
   }
 }
-
 initDefaults();
 
-// ===== API ROUTES =====
-
-// Settings
+// Settings API
 app.get('/api/settings', async (req, res) => {
   try {
-    let settings = await Settings.findOne();
-    if (!settings) settings = await Settings.create({ mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
-    res.json(settings);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+    let s = await Settings.findOne();
+    if (!s) s = await Settings.create({ mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
+    res.json(s);
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.put('/api/settings', async (req, res) => {
   try {
     const { mainTitle, mainSubtitle, title, desc, phone } = req.body;
-    let settings = await Settings.findOne();
-    if (settings) {
-      settings.mainTitle = mainTitle;
-      settings.mainSubtitle = mainSubtitle;
-      settings.title = title;
-      settings.desc = desc;
-      settings.phone = phone;
-      await settings.save();
+    let s = await Settings.findOne();
+    if (s) {
+      s.mainTitle = mainTitle; s.mainSubtitle = mainSubtitle; s.title = title; s.desc = desc; s.phone = phone;
+      await s.save();
     } else {
-      settings = await Settings.create({ mainTitle, mainSubtitle, title, desc, phone, globalBotEnabled: true });
+      s = await Settings.create({ mainTitle, mainSubtitle, title, desc, phone, globalBotEnabled: true });
     }
-    res.json({ success: true, settings });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+    res.json({ success: true, settings: s });
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.get('/api/girls', async (req, res) => {
-  try {
-    const girls = await Girl.find().sort({ createdAt: -1 });
-    res.json(girls);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  try { res.json(await Girl.find().sort({ createdAt: -1 })); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.post('/api/auth', async (req, res) => {
@@ -168,9 +131,7 @@ app.post('/api/auth', async (req, res) => {
     const user = await User.findOne({ username, password });
     if (!user) return res.status(401).json({ success: false, message: 'Неверный логин или пароль' });
     res.json({ success: true, user: { username: user.username, role: user.role } });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.post('/api/register', async (req, res) => {
@@ -179,22 +140,17 @@ app.post('/api/register', async (req, res) => {
     if (!username || !password) return res.status(400).json({ success: false, message: 'Заполните все поля' });
     if (username.length < 3) return res.status(400).json({ success: false, message: 'Никнейм минимум 3 символа' });
     if (password.length < 4) return res.status(400).json({ success: false, message: 'Пароль минимум 4 символа' });
-    const existingUser = await User.findOne({ username });
-    if (existingUser) return res.status(400).json({ success: false, message: 'Никнейм занят' });
+    if (await User.findOne({ username })) return res.status(400).json({ success: false, message: 'Никнейм занят' });
     const user = await User.create({ username, password, role: 'client' });
     res.json({ success: true, user: { username: user.username, role: user.role } });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.post('/api/chat/send', async (req, res) => {
   try {
     const { username, text } = req.body;
     let chat = await Chat.findOne({ userId: username });
-    if (!chat) {
-      chat = await Chat.create({ userId: username, messages: [], waitingForOperator: false, botEnabled: true, botStep: 'greet' });
-    }
+    if (!chat) chat = await Chat.create({ userId: username, messages: [], waitingForOperator: false, botEnabled: true, botStep: 'greet' });
     chat.messages.push({ type: 'user', text, time: new Date() });
     chat.lastActivity = new Date();
     
@@ -206,14 +162,14 @@ app.post('/api/chat/send', async (req, res) => {
     if (isBotActive && !chat.waitingForOperator) {
       const lower = text.toLowerCase();
       if (chat.botStep === 'greet' || chat.botStep === 'asking_city') {
-        const foundCity = CITIES.find(c => lower.includes(c));
-        if (foundCity) {
-          const cityGirls = await Girl.find({ city: new RegExp(foundCity, 'i') });
-          if (cityGirls.length > 0) {
+        const fc = CITIES.find(c => lower.includes(c));
+        if (fc) {
+          const cg = await Girl.find({ city: new RegExp(fc, 'i') });
+          if (cg.length > 0) {
             chat.botStep = 'picking_girl';
-            botReply = { text: `Отлично! В ${foundCity.charAt(0).toUpperCase() + foundCity.slice(1)} есть ${cityGirls.length} анкет. Вот доступные:`, type: 'girls_list', girls: cityGirls };
+            botReply = { text: `Отлично! В ${fc.charAt(0).toUpperCase() + fc.slice(1)} есть ${cg.length} анкет. Вот доступные:`, type: 'girls_list', girls: cg };
           } else {
-            botReply = { text: `В городе ${foundCity} пока нет анкет. Попробуйте другой.`, type: 'text' };
+            botReply = { text: `В городе ${fc} пока нет анкет.`, type: 'text' };
             chat.botStep = 'asking_city';
           }
         } else {
@@ -221,22 +177,20 @@ app.post('/api/chat/send', async (req, res) => {
           chat.botStep = 'asking_city';
         }
       } else if (chat.botStep === 'picking_girl') {
-        const foundGirl = await Girl.findOne({ name: new RegExp(lower, 'i') });
-        if (foundGirl) {
-          chat.selectedGirl = foundGirl;
-          chat.botStep = 'girl_selected';
-          botReply = { text: '💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:', type: 'services', girl: foundGirl };
+        const fg = await Girl.findOne({ name: new RegExp(lower, 'i') });
+        if (fg) {
+          chat.selectedGirl = fg; chat.botStep = 'girl_selected';
+          botReply = { text: '💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:', type: 'services', girl: fg };
         } else {
           botReply = { text: 'Напишите имя девушки из списка.', type: 'text' };
         }
       } else if (chat.botStep === 'girl_selected' && chat.selectedGirl) {
-        const foundService = chat.selectedGirl.services.find(s => lower.includes(s.name.toLowerCase()));
-        if (foundService) {
-          botReply = { text: `✅ Вы выбрали: ${foundService.name} — ${foundService.price}₽\nЗаявка в обработке. Оператор скоро свяжется.`, type: 'processing' };
-          chat.waitingForOperator = true;
-          chat.botStep = 'waiting';
+        const fs = chat.selectedGirl.services.find(s => lower.includes(s.name.toLowerCase()));
+        if (fs) {
+          botReply = { text: `✅ Вы выбрали: ${fs.name} — ${fs.price}₽\nЗаявка в обработке.`, type: 'processing' };
+          chat.waitingForOperator = true; chat.botStep = 'waiting';
         } else {
-          botReply = { text: 'Напишите название услуги (например: Встреча).', type: 'text' };
+          botReply = { text: 'Напишите название услуги.', type: 'text' };
         }
       } else if (chat.botStep === 'waiting') {
         botReply = { text: 'Заявка в обработке, ожидайте оператора.', type: 'text' };
@@ -245,33 +199,18 @@ app.post('/api/chat/send', async (req, res) => {
       chat.waitingForOperator = true;
     }
     
-    if (botReply) {
-      chat.messages.push({ type: 'bot', text: botReply.text, extra: botReply, time: new Date() });
-    }
-    
+    if (botReply) chat.messages.push({ type: 'bot', text: botReply.text, extra: botReply, time: new Date() });
     await chat.save();
     res.json({ success: true, reply: botReply });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.get('/api/chat/:username', async (req, res) => {
-  try {
-    const chat = await Chat.findOne({ userId: req.params.username });
-    res.json({ messages: chat?.messages || [] });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  try { const c = await Chat.findOne({ userId: req.params.username }); res.json({ messages: c?.messages || [] }); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.get('/api/admin/chats', async (req, res) => {
-  try {
-    const chats = await Chat.find().sort({ lastActivity: -1 });
-    res.json(chats);
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  try { res.json(await Chat.find().sort({ lastActivity: -1 })); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.post('/api/admin/chat/reply', async (req, res) => {
@@ -280,66 +219,37 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     const chat = await Chat.findOne({ userId });
     if (!chat) return res.status(404).json({ error: 'Chat not found' });
     chat.messages.push({ type: 'bot', text: `[Оператор] ${text}`, time: new Date() });
-    chat.waitingForOperator = false;
-    chat.botStep = 'greet';
-    chat.selectedGirl = null;
-    chat.botEnabled = true;
+    chat.waitingForOperator = false; chat.botStep = 'greet'; chat.selectedGirl = null; chat.botEnabled = true;
     await chat.save();
     res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.delete('/api/admin/chat/:userId', async (req, res) => {
-  try {
-    await Chat.findOneAndDelete({ userId: req.params.userId });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  try { await Chat.findOneAndDelete({ userId: req.params.userId }); res.json({ success: true }); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.patch('/api/admin/chat/:userId/toggle-bot', async (req, res) => {
   try {
     const { enabled } = req.body;
     const chat = await Chat.findOne({ userId: req.params.userId });
-    if (chat) {
-      chat.botEnabled = enabled;
-      await chat.save();
-    }
+    if (chat) { chat.botEnabled = enabled; await chat.save(); }
     res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
 app.post('/api/admin/girls', async (req, res) => {
   try {
     const { action, girl } = req.body;
-    if (action === 'add') {
-      const newGirl = await Girl.create(girl);
-      res.json({ success: true, girl: newGirl });
-    } else if (action === 'update') {
-      const updatedGirl = await Girl.findByIdAndUpdate(girl._id, girl, { new: true });
-      res.json({ success: true, girl: updatedGirl });
-    } else if (action === 'delete') {
-      await Girl.findByIdAndDelete(girl._id);
-      res.json({ success: true });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
+    if (action === 'add') { res.json({ success: true, girl: await Girl.create(girl) }); }
+    else if (action === 'update') { res.json({ success: true, girl: await Girl.findByIdAndUpdate(girl._id, girl, { new: true }) }); }
+    else if (action === 'delete') { await Girl.findByIdAndDelete(girl._id); res.json({ success: true }); }
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Serve frontend
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running anonymously on port ${PORT}`);
-  console.log(`🌐 Local: http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
