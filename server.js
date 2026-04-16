@@ -218,9 +218,34 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     const { userId, text } = req.body;
     const chat = await Chat.findOne({ userId });
     if (!chat) return res.status(404).json({ error: 'Chat not found' });
+    
+    // Удаляем сообщение "processing" если оно последнее
+    if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].extra?.type === 'processing') {
+      chat.messages.pop();
+    }
+    
     chat.messages.push({ type: 'bot', text: `[Оператор] ${text}`, time: new Date() });
-    chat.waitingForOperator = false; chat.botStep = 'greet'; chat.selectedGirl = null; chat.botEnabled = true;
+    chat.waitingForOperator = false;
+    chat.botStep = 'greet';
+    chat.selectedGirl = null;
+    chat.botEnabled = true;
     await chat.save();
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// ✅ НОВОЕ: Очистка истории чата
+app.put('/api/admin/chat/:userId/clear', async (req, res) => {
+  try {
+    const chat = await Chat.findOne({ userId: req.params.userId });
+    if (chat) {
+      chat.messages = [];
+      chat.waitingForOperator = false;
+      chat.botStep = 'greet';
+      chat.selectedGirl = null;
+      chat.botEnabled = true;
+      await chat.save();
+    }
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
