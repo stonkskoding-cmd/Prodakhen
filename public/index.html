@@ -381,12 +381,12 @@ function startChatsUpdate(){
         const res=await fetch('/api/admin/chats');
         if(res.ok){
           const chats=await res.json();
-          // Обновляем state.chats
+          // Обновляем state.chats новыми данными с сервера
           chats.forEach(chat=>{
             state.chats[chat.userId]=chat;
           });
           renderAdminChats();
-          // Если открыт чат, обновляем сообщения
+          // Если открыт конкретный чат, обновляем сообщения
           if(state.adminChatWith && state.chats[state.adminChatWith]){
             renderAdminChatMessages();
           }
@@ -422,21 +422,28 @@ function sendAdminReply(){
   renderChat();
 }
 
+// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ОЧИСТКИ
 async function clearChatHistory(){
-  if(!state.adminChatWith||!confirm('Очистить всю историю чата с '+state.adminChatWith+'?'))return;
-  
+  if(!state.adminChatWith) return;
   const uid=state.adminChatWith;
   
-  state.chats[uid].messages=[];
-  state.chats[uid].waitingForOperator=false;
-  state.chats[uid].botStep='greet';
-  state.chats[uid].selectedGirl=null;
-  state.chats[uid].botEnabled=true;
-  saveState();
-  
   try{
+    // Сначала шлем запрос на сервер
     await fetch(`/api/admin/chat/${uid}/clear`,{method:'PUT'});
-  }catch(e){}
+    
+    // Потом обновляем локально, если чат есть
+    if(state.chats[uid]){
+      state.chats[uid].messages=[];
+      state.chats[uid].waitingForOperator=false;
+      state.chats[uid].botStep='greet';
+      state.chats[uid].selectedGirl=null;
+      state.chats[uid].botEnabled=true;
+      saveState();
+    }
+  }catch(e){
+    showToast('Ошибка при очистке','error');
+    return;
+  }
   
   renderAdminChatMessages();
   renderAdminChats();
@@ -489,7 +496,7 @@ function renderAdminChats(){
     const bs=ch.botEnabled!==false?'Вкл':'Выкл',bc=ch.botEnabled!==false?'bot-on':'';
     const wc=ch.waitingForOperator?'waiting':'',sc=ch.waitingForOperator?'waiting':(ch.messages.length>2?'active':'idle');
     const st=ch.waitingForOperator?'⏳ Ожидание':'✅ Активен';
-    return '<div class="chat-item '+wc+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+sc+'">'+st+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Чат</button><button class="toggle-bot '+bc+'" onclick="toggleChatBot(\''+uid+'\')">🤖 '+bs+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️</button><button class="delete-btn" onclick="deleteChat(\''+uid+'\')" title="Удалить чат">🗑️</button></div></div>';
+    return '<div class="chat-item '+wc+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+sc+'">'+st+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Чат</button><button class="toggle-bot '+bc+'" onclick="toggleChatBot(\''+uid+'\')">🤖 '+bs+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️</button><button class="delete-btn" onclick="deleteChat(\''+uid+'\')" title="Удалить чат">❌</button></div></div>';
   }).join('');
 }
 
@@ -502,19 +509,12 @@ function toggleChatBot(uid){
 }
 
 function clearSingleChat(uid){
-  if(!state.chats[uid]||!confirm('Очистить историю чата с '+uid+'?'))return;
-  state.chats[uid].messages=[];
-  state.chats[uid].waitingForOperator=false;
-  state.chats[uid].botStep='greet';
-  state.chats[uid].selectedGirl=null;
-  state.chats[uid].botEnabled=true;
-  saveState();
-  renderAdminChats();
-  showToast('История очищена','success');
+  state.adminChatWith = uid;
+  clearChatHistory();
 }
 
 function deleteChat(uid){
-  state.adminChatWith=uid;
+  state.adminChatWith = uid;
   deleteChatCompletely();
 }
 
