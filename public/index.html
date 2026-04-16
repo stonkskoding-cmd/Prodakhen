@@ -35,8 +35,9 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 .header-phone{display:flex;align-items:center;gap:5px;color:var(--accent2);font-size:0.75rem;font-weight:700;text-decoration:none;white-space:nowrap;cursor:pointer;transition:all 0.3s}
 .header-phone:hover{color:var(--text)}
 .header-phone.hidden{display:none}
-.header-profile-btn{background:var(--glass);border:1px solid var(--glass-border);color:var(--text);width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;font-size:1.1rem;flex-shrink:0}
+.header-profile-btn{background:var(--glass);border:1px solid var(--glass-border);color:var(--text);width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;font-size:1.1rem;flex-shrink:0;position:relative}
 .header-profile-btn:hover{background:var(--accent);border-color:var(--accent);transform:scale(1.05)}
+.notification-badge{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;border-radius:10px;padding:2px 6px;font-size:0.7rem;font-weight:700;animation:pulse 2s infinite}
 .main{flex:1;padding-top:74px}
 .section{display:none;padding:20px;max-width:1200px;margin:0 auto;animation:fadeIn 0.4s ease}
 .section.active{display:block}
@@ -169,9 +170,10 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 .toast.success{border-color:var(--success);color:var(--success)}.toast.error{border-color:var(--danger);color:var(--danger)}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--glass-border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}
 .admin-tabs{display:flex;gap:4px;margin-bottom:24px;background:rgba(0,0,0,0.3);border-radius:14px;padding:4px;flex-wrap:wrap;border:1px solid var(--glass-border)}
-.admin-tab{flex:1;min-width:120px;padding:12px 16px;border:none;background:none;color:var(--text-muted);font-family:inherit;font-weight:700;font-size:0.9rem;cursor:pointer;border-radius:10px;transition:all 0.3s;text-align:center}
+.admin-tab{flex:1;min-width:120px;padding:12px 16px;border:none;background:none;color:var(--text-muted);font-family:inherit;font-weight:700;font-size:0.9rem;cursor:pointer;border-radius:10px;transition:all 0.3s;text-align:center;position:relative}
 .admin-tab.active{background:var(--gradient2);color:#fff}
 .admin-tab:hover:not(.active){background:rgba(255,255,255,0.05)}
+.admin-tab .badge{position:absolute;top:5px;right:5px;background:var(--danger);color:#fff;border-radius:10px;padding:2px 6px;font-size:0.65rem;font-weight:700}
 .admin-panel{display:none;animation:fadeIn 0.3s ease}
 .admin-panel.active{display:block}
 .admin-section{margin-bottom:24px}
@@ -211,9 +213,10 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 .service-item .remove-service{width:32px;height:32px;background:rgba(244,67,54,0.1);border:1px solid var(--danger);color:var(--danger);border-radius:8px;cursor:pointer;font-size:1rem;transition:all 0.3s;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .service-item .remove-service:hover{background:var(--danger);color:#fff}
 .chat-list{display:flex;flex-direction:column;gap:8px}
-.chat-item{background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:14px 18px;transition:all 0.3s}
+.chat-item{background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:14px 18px;transition:all 0.3s;position:relative}
 .chat-item:hover{border-color:var(--accent)}
 .chat-item.waiting{border-color:var(--warning);box-shadow:0 0 15px rgba(255,152,0,0.1)}
+.chat-item.new-message{border-color:var(--accent);background:rgba(233,30,99,0.1)}
 .chat-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px}
 .chat-item-header h4{font-weight:700;font-size:0.95rem;display:flex;align-items:center;gap:6px}
 .chat-item-header .status{font-size:0.7rem;padding:3px 10px;border-radius:6px;font-weight:600}
@@ -250,11 +253,11 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 <div class="modal-overlay" id="citiesModal"><div class="modal cities-modal"><button class="modal-close" onclick="closeCitiesModal()">✕</button><div class="modal-header"><h2>Города</h2></div><div class="modal-body"><div class="cities-list" id="citiesList"></div></div></div></div>
 <div class="modal-overlay" id="privacyModal"><div class="modal policy-modal"><button class="modal-close" onclick="closePrivacyPolicy()">✕</button><div class="modal-header"><h2>Политика конфиденциальности</h2></div><div class="modal-body"><div class="policy-content"><h3>1. Общие положения</h3><p>Настоящая Политика конфиденциальности регулирует порядок обработки и использования персональных данных пользователей сайта BABYGIRL_LNR.</p><h3>2. Сбор информации</h3><p>Мы собираем минимально необходимую информацию: никнейм и пароль для создания учётной записи.</p><h3>3. Использование информации</h3><p>Данные используются исключительно для идентификации пользователя, работы чата с оператором и персонализации контента.</p><h3>4. Защита данных</h3><p>Мы применяем современные меры безопасности. Пароли хранятся в зашифрованном виде.</p><h3>5. Передача данных</h3><p>Мы не передаём данные третьим лицам, за исключением случаев, предусмотренных законодательством.</p><h3>6. Файлы cookie</h3><p>Сайт использует cookie для обеспечения корректной работы и сохранения сессии.</p><h3>7. Возрастные ограничения</h3><p>Сайт предназначен исключительно для лиц старше 18 лет.</p><h3>8. Изменение политики</h3><p>Мы оставляем за собой право вносить изменения. Продолжение использования означает согласие.</p><h3>9. Контакты</h3><p>По вопросам обращайтесь через раздел поддержки на сайте.</p></div></div></div></div>
 <div class="profile-dropdown" id="profileDropdown"><div class="pd-name" id="pdName">Профиль</div><button class="pd-btn" onclick="openSupport()">💬 Поддержка</button><button class="pd-btn" onclick="openAdmin()" id="adminBtn" style="display:none">⚙️ Панель управления</button><button class="pd-btn danger" onclick="logout()">🚪 Выйти</button></div>
-<header class="header" id="header"><div class="header-logo" onclick="navigateTo('girls')"><div class="logo-heart"><svg viewBox="0 0 40 40" fill="none"><path d="M20 35C10 28 2 22 2 14C2 8 7 3 13 3C16 3 18.5 4.5 20 7C21.5 4.5 24 3 27 3C33 3 38 8 38 14C38 22 30 28 20 35Z" stroke="url(#hg)" stroke-width="2" fill="none"><animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" fill="freeze"/><animate attributeName="stroke-dasharray" from="0 100" to="100 0" dur="2s" fill="freeze"/></path><defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e91e63"/><stop offset="100%" stop-color="#9c27b0"/></linearGradient></defs></svg></div><span class="logo-text">BABYGIRL_LNR</span></div><div class="header-center"><nav class="header-nav"><button class="nav-btn active" data-section="girls" onclick="navigateTo('girls')">👩 Девушки</button><button class="nav-btn" data-section="chat" onclick="navigateTo('chat')">💬 Чат</button><button class="nav-btn" data-section="cities" onclick="openCitiesModal()">🏙️ Города</button></nav></div><div class="header-right"><a class="header-phone hidden" id="headerPhone" href="#" onclick="event.preventDefault()"></a><button class="header-profile-btn" onclick="toggleProfileDropdown()">👤</button></div></header>
+<header class="header" id="header"><div class="header-logo" onclick="navigateTo('girls')"><div class="logo-heart"><svg viewBox="0 0 40 40" fill="none"><path d="M20 35C10 28 2 22 2 14C2 8 7 3 13 3C16 3 18.5 4.5 20 7C21.5 4.5 24 3 27 3C33 3 38 8 38 14C38 22 30 28 20 35Z" stroke="url(#hg)" stroke-width="2" fill="none"><animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" fill="freeze"/><animate attributeName="stroke-dasharray" from="0 100" to="100 0" dur="2s" fill="freeze"/></path><defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e91e63"/><stop offset="100%" stop-color="#9c27b0"/></linearGradient></defs></svg></div><span class="logo-text">BABYGIRL_LNR</span></div><div class="header-center"><nav class="header-nav"><button class="nav-btn active" data-section="girls" onclick="navigateTo('girls')">👩 Девушки</button><button class="nav-btn" data-section="chat" onclick="navigateTo('chat')">💬 Чат</button><button class="nav-btn" data-section="cities" onclick="openCitiesModal()">🏙️ Города</button></nav></div><div class="header-right"><a class="header-phone hidden" id="headerPhone" href="#" onclick="event.preventDefault()"></a><button class="header-profile-btn" onclick="toggleProfileDropdown()">👤<span id="notificationBadge" style="display:none" class="notification-badge">0</span></button></div></header>
 <main class="main">
 <section class="section active" id="sec-girls"><div class="catalog-header"><h1 id="mainHeaderTitle">Анкеты девушек</h1><p id="mainHeaderSubtitle">Выберите идеальную компанию для незабываемого вечера</p></div><div class="catalog-filters" id="catalogFilters"></div><div class="girls-grid" id="girlsGrid"></div></section>
 <section class="section" id="sec-chat"><div class="chat-container"><div class="chat-header"><h3>💬 Чат с оператором</h3><div class="chat-indicator" id="chatIndicator"><span class="dot"></span><span>Ожидание оператора...</span></div></div><div class="chat-messages" id="chatMessages"></div><div class="chat-input-wrap"><input type="text" class="chat-input" id="chatInput" placeholder="Введите сообщение..." onkeypress="if(event.key==='Enter')sendMessage()"><button class="chat-send" onclick="sendMessage()">➤</button></div></div></section>
-<section class="section" id="sec-admin"><div class="catalog-header"><h1>Панель управления</h1><p>Управление контентом и чатами</p></div><div class="admin-tabs"><button class="admin-tab active" onclick="switchAdminTab('girls-tab')">👩 Анкеты</button><button class="admin-tab" onclick="switchAdminTab('chats-tab')">💬 Чаты</button><button class="admin-tab" onclick="switchAdminTab('settings-tab')">⚙️ Настройки</button></div><div class="admin-panel active" id="girls-tab"><div class="admin-section"><h3>➕ Добавить / Редактировать анкету</h3><div class="admin-card"><input type="hidden" id="editGirlId" value=""><div class="admin-row"><div class="form-group"><label>Имя *</label><input type="text" class="form-input" id="admGirlName" placeholder="Имя девушки"></div><div class="form-group"><label>Город</label><select class="form-input" id="admGirlCity"><option value="Луганск">Луганск</option><option value="Стаханов">Стаханов</option><option value="Первомайск">Первомайск</option></select></div></div><div class="admin-row"><div class="form-group"><label>Рост (см)</label><input type="number" class="form-input" id="admGirlHeight" placeholder="170"></div><div class="form-group"><label>Вес (кг)</label><input type="number" class="form-input" id="admGirlWeight" placeholder="55"></div><div class="form-group"><label>Размер груди</label><input type="text" class="form-input" id="admGirlBreast" placeholder="3"></div><div class="form-group"><label>Возраст</label><input type="number" class="form-input" id="admGirlAge" placeholder="22"></div></div><div class="form-group"><label>Описание</label><textarea class="form-input" id="admGirlDesc" rows="3" placeholder="Описание девушки..."></textarea></div><div class="form-group"><label>Предпочтения</label><input type="text" class="form-input" id="admGirlPrefs" placeholder="Предпочтения..."></div><div class="form-group"><label>Фото (до 4 шт)</label><div class="photo-upload-area" id="photoUploadArea"><div class="photo-slot" onclick="uploadPhoto(0)"><span class="placeholder">📷<br>1</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(0,this)"></div><div class="photo-slot" onclick="uploadPhoto(1)"><span class="placeholder">📷<br>2</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(1,this)"></div><div class="photo-slot" onclick="uploadPhoto(2)"><span class="placeholder">📷<br>3</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(2,this)"></div><div class="photo-slot" onclick="uploadPhoto(3)"><span class="placeholder">📷<br>4</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(3,this)"></div></div></div><div class="form-group"><label>Услуги</label><div class="services-list" id="servicesList"></div><button class="admin-btn secondary" onclick="addServiceRow()" style="margin-top:8px">➕ Добавить услугу</button></div><div class="admin-row" style="margin-top:16px"><button class="admin-btn primary" onclick="saveGirl()">💾 Сохранить анкету</button><button class="admin-btn secondary" onclick="clearGirlForm()">🗑️ Очистить</button></div></div><h3 style="margin-top:20px">📋 Список анкет</h3><div class="admin-list" id="adminGirlsList"></div></div></div><div class="admin-panel" id="chats-tab"><div class="admin-section"><h3>💬 Активные чаты с клиентами</h3><div class="chat-list" id="adminChatList"></div></div></div><div class="admin-panel" id="settings-tab"><div class="admin-section"><h3>⚙️ Настройки сайта</h3><div class="admin-card"><div class="form-group"><label>Заголовок главной страницы</label><input type="text" class="form-input" id="admMainTitle" value="Анкеты девушек"></div><div class="form-group"><label>Описание главной страницы</label><input type="text" class="form-input" id="admMainSubtitle" value="Выберите идеальную компанию для незабываемого вечера"></div><div class="form-group"><label>Название вкладки браузера</label><input type="text" class="form-input" id="admSiteTitle" value="BABYGIRL_LNR"></div><div class="form-group"><label>Описание сайта (SEO)</label><textarea class="form-input" id="admSiteDesc" rows="2" placeholder="Краткое описание..."></textarea></div><div class="form-group"><label>Номер телефона (шапка)</label><input type="text" class="form-input" id="admSitePhone" placeholder="+7 XXX XXX-XX-XX"></div><div class="admin-row" style="margin-top:12px"><button class="admin-btn primary" onclick="saveSiteSettings()">💾 Сохранить настройки</button></div></div></div></div></section>
+<section class="section" id="sec-admin"><div class="catalog-header"><h1>Панель управления</h1><p>Управление контентом и чатами</p></div><div class="admin-tabs"><button class="admin-tab active" onclick="switchAdminTab('girls-tab')">👩 Анкеты</button><button class="admin-tab" onclick="switchAdminTab('chats-tab')">💬 Чаты<span id="chatsBadge" class="badge" style="display:none">0</span></button><button class="admin-tab" onclick="switchAdminTab('settings-tab')">⚙️ Настройки</button></div><div class="admin-panel active" id="girls-tab"><div class="admin-section"><h3>➕ Добавить / Редактировать анкету</h3><div class="admin-card"><input type="hidden" id="editGirlId" value=""><div class="admin-row"><div class="form-group"><label>Имя *</label><input type="text" class="form-input" id="admGirlName" placeholder="Имя девушки"></div><div class="form-group"><label>Город</label><select class="form-input" id="admGirlCity"><option value="Луганск">Луганск</option><option value="Стаханов">Стаханов</option><option value="Первомайск">Первомайск</option></select></div></div><div class="admin-row"><div class="form-group"><label>Рост (см)</label><input type="number" class="form-input" id="admGirlHeight" placeholder="170"></div><div class="form-group"><label>Вес (кг)</label><input type="number" class="form-input" id="admGirlWeight" placeholder="55"></div><div class="form-group"><label>Размер груди</label><input type="text" class="form-input" id="admGirlBreast" placeholder="3"></div><div class="form-group"><label>Возраст</label><input type="number" class="form-input" id="admGirlAge" placeholder="22"></div></div><div class="form-group"><label>Описание</label><textarea class="form-input" id="admGirlDesc" rows="3" placeholder="Описание девушки..."></textarea></div><div class="form-group"><label>Предпочтения</label><input type="text" class="form-input" id="admGirlPrefs" placeholder="Предпочтения..."></div><div class="form-group"><label>Фото (до 4 шт)</label><div class="photo-upload-area" id="photoUploadArea"><div class="photo-slot" onclick="uploadPhoto(0)"><span class="placeholder">📷<br>1</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(0,this)"></div><div class="photo-slot" onclick="uploadPhoto(1)"><span class="placeholder">📷<br>2</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(1,this)"></div><div class="photo-slot" onclick="uploadPhoto(2)"><span class="placeholder">📷<br>3</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(2,this)"></div><div class="photo-slot" onclick="uploadPhoto(3)"><span class="placeholder">📷<br>4</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto(3,this)"></div></div></div><div class="form-group"><label>Услуги</label><div class="services-list" id="servicesList"></div><button class="admin-btn secondary" onclick="addServiceRow()" style="margin-top:8px">➕ Добавить услугу</button></div><div class="admin-row" style="margin-top:16px"><button class="admin-btn primary" onclick="saveGirl()">💾 Сохранить анкету</button><button class="admin-btn secondary" onclick="clearGirlForm()">🗑️ Очистить</button></div></div><h3 style="margin-top:20px">📋 Список анкет</h3><div class="admin-list" id="adminGirlsList"></div></div></div><div class="admin-panel" id="chats-tab"><div class="admin-section"><h3>💬 Активные чаты с клиентами</h3><div class="chat-list" id="adminChatList"></div></div></div><div class="admin-panel" id="settings-tab"><div class="admin-section"><h3>⚙️ Настройки сайта</h3><div class="admin-card"><div class="form-group"><label>Заголовок главной страницы</label><input type="text" class="form-input" id="admMainTitle" value="Анкеты девушек"></div><div class="form-group"><label>Описание главной страницы</label><input type="text" class="form-input" id="admMainSubtitle" value="Выберите идеальную компанию для незабываемого вечера"></div><div class="form-group"><label>Название вкладки браузера</label><input type="text" class="form-input" id="admSiteTitle" value="BABYGIRL_LNR"></div><div class="form-group"><label>Описание сайта (SEO)</label><textarea class="form-input" id="admSiteDesc" rows="2" placeholder="Краткое описание..."></textarea></div><div class="form-group"><label>Номер телефона (шапка)</label><input type="text" class="form-input" id="admSitePhone" placeholder="+7 XXX XXX-XX-XX"></div><div class="admin-row" style="margin-top:12px"><button class="admin-btn primary" onclick="saveSiteSettings()">💾 Сохранить настройки</button></div></div></div></div></section>
 </main>
 <footer class="footer"><div class="warning">⚠️ Данный сайт содержит материалы 18+. Доступ разрешён только лицам старше 18 лет.</div><div class="info">BABYGIRL_LNR — сервис знакомств. Все услуги предоставляются по взаимному согласию. Оплата производится напрямую девушке при встрече. Администрация не несёт ответственности за действия пользователей.</div></footer>
 </div>
@@ -270,7 +273,7 @@ const DEFAULT_GIRLS=[
 {id:5,name:'Мария',city:'Стаханов',photos:[],desc:'Рыжеволосая красавица.',height:'163',weight:'50',breast:'2',age:'22',prefs:'Кулинария',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
 {id:6,name:'Анастасия',city:'Первомайск',photos:[],desc:'Спортивная блондинка.',height:'175',weight:'56',breast:'3',age:'24',prefs:'Спорт',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'13000'}]}
 ];
-let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{mainTitle:'Анкеты девушек',mainSubtitle:'Выберите идеальную компанию для незабываемого вечера',title:'BABYGIRL_LNR',desc:'',phone:''},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null,chatsUpdateInterval:null};
+let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{mainTitle:'Анкеты девушек',mainSubtitle:'Выберите идеальную компанию для незабываемого вечера',title:'BABYGIRL_LNR',desc:'',phone:''},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null,chatsUpdateInterval:null,lastChatsCount:0};
 let tempPhotos=[null,null,null,null];
 
 async function init(){
@@ -372,32 +375,68 @@ function renderMainHeaders(){
 
 function updatePhoneDisplay(){const el=document.getElementById('headerPhone');if(state.settings.phone){el.classList.remove('hidden');el.textContent='📞 '+state.settings.phone;el.href='tel:'+state.settings.phone.replace(/\s/g,'')}else{el.classList.add('hidden')}}
 
-// ✅ ОБНОВЛЕНИЕ СПИСКА ЧАТОВ КАЖДЫЕ 3 СЕКУНДЫ
+// ✅ ОБНОВЛЕНИЕ СПИСКА ЧАТОВ КАЖДЫЕ 2 СЕКУНДЫ + УВЕДОМЛЕНИЯ
 function startChatsUpdate(){
   if(state.chatsUpdateInterval)clearInterval(state.chatsUpdateInterval);
   state.chatsUpdateInterval=setInterval(async ()=>{
-    if(state.currentSection==='admin' && document.querySelector('.admin-tab[onclick*="chats-tab"]').classList.contains('active')){
+    if(state.currentSection==='admin'){
       try{
         const res=await fetch('/api/admin/chats');
         if(res.ok){
           const chats=await res.json();
-          // Обновляем state.chats новыми данными с сервера
+          const newCount=chats.filter(c=>c.waitingForOperator || (c.messages.length>0 && c.messages[c.messages.length-1].type==='user')).length;
+          
+          // Обновляем state.chats
           chats.forEach(chat=>{
+            const oldChat=state.chats[chat.userId];
             state.chats[chat.userId]=chat;
+            // Проверяем новые сообщения
+            if(oldChat && chat.messages.length > oldChat.messages.length){
+              playNotificationSound();
+              showNotification('Новое сообщение от '+chat.userId);
+            }
           });
+          
+          // Обновляем счетчик
+          updateChatsBadge(newCount);
+          
           renderAdminChats();
-          // Если открыт конкретный чат, обновляем сообщения
+          
+          // Если открыт чат, обновляем сообщения
           if(state.adminChatWith && state.chats[state.adminChatWith]){
             renderAdminChatMessages();
           }
         }
       }catch(e){}
     }
-  },3000);
+  },2000); // Каждые 2 секунды
 }
 
 function stopChatsUpdate(){
   if(state.chatsUpdateInterval){clearInterval(state.chatsUpdateInterval);state.chatsUpdateInterval=null}
+}
+
+function updateChatsBadge(count){
+  const badge=document.getElementById('chatsBadge');
+  const profileBadge=document.getElementById('notificationBadge');
+  if(count>0){
+    badge.textContent=count;
+    badge.style.display='inline';
+    profileBadge.textContent=count;
+    profileBadge.style.display='inline';
+  }else{
+    badge.style.display='none';
+    profileBadge.style.display='none';
+  }
+}
+
+function playNotificationSound(){
+  const audio=new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+......');
+  audio.play().catch(()=>{});
+}
+
+function showNotification(text){
+  showToast('🔔 '+text,'success');
 }
 
 function sendAdminReply(){
@@ -422,16 +461,13 @@ function sendAdminReply(){
   renderChat();
 }
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ОЧИСТКИ
 async function clearChatHistory(){
   if(!state.adminChatWith) return;
   const uid=state.adminChatWith;
   
   try{
-    // Сначала шлем запрос на сервер
     await fetch(`/api/admin/chat/${uid}/clear`,{method:'PUT'});
     
-    // Потом обновляем локально, если чат есть
     if(state.chats[uid]){
       state.chats[uid].messages=[];
       state.chats[uid].waitingForOperator=false;
@@ -451,7 +487,6 @@ async function clearChatHistory(){
   showToast('История чата очищена','success');
 }
 
-// ✅ ПОЛНОЕ УДАЛЕНИЕ ЧАТА
 async function deleteChatCompletely(){
   if(!state.adminChatWith||!confirm('Полностью удалить чат с '+state.adminChatWith+'? Это действие нельзя отменить!'))return;
   
@@ -496,7 +531,8 @@ function renderAdminChats(){
     const bs=ch.botEnabled!==false?'Вкл':'Выкл',bc=ch.botEnabled!==false?'bot-on':'';
     const wc=ch.waitingForOperator?'waiting':'',sc=ch.waitingForOperator?'waiting':(ch.messages.length>2?'active':'idle');
     const st=ch.waitingForOperator?'⏳ Ожидание':'✅ Активен';
-    return '<div class="chat-item '+wc+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+sc+'">'+st+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Чат</button><button class="toggle-bot '+bc+'" onclick="toggleChatBot(\''+uid+'\')">🤖 '+bs+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️</button><button class="delete-btn" onclick="deleteChat(\''+uid+'\')" title="Удалить чат">❌</button></div></div>';
+    const hasNewMsg=ch.waitingForOperator || (lastMsg && lastMsg.type==='user');
+    return '<div class="chat-item '+wc+(hasNewMsg?' new-message':'')+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+sc+'">'+st+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Чат</button><button class="toggle-bot '+bc+'" onclick="toggleChatBot(\''+uid+'\')">🤖 '+bs+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️</button><button class="delete-btn" onclick="deleteChat(\''+uid+'\')" title="Удалить чат">❌</button></div></div>';
   }).join('');
 }
 
