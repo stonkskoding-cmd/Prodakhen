@@ -73,10 +73,10 @@ background: radial-gradient(circle at 10% 20%, rgb(29, 13, 35) 0%, rgb(10, 10, 1
 /* GIRLS GRID - GLASSMORPHISM FIX */
 .girls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
 .girl-card{
-  background: rgba(18, 18, 26, 0.65); /* Полупрозрачный темный фон */
-  backdrop-filter: blur(12px) saturate(150%); /* Размытие фона */
+  background: rgba(18, 18, 26, 0.65);
+  backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Тонкая рамка */
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
@@ -404,7 +404,10 @@ background: radial-gradient(circle at 10% 20%, rgb(29, 13, 35) 0%, rgb(10, 10, 1
 </header>
 <main class="main">
 <section class="section active" id="sec-girls">
-<div class="catalog-header"><h1>Анкеты девушек</h1><p>Выберите идеальную компанию для незабываемого вечера</p></div>
+<div class="catalog-header">
+<h1 id="mainHeaderTitle">Анкеты девушек</h1>
+<p id="mainHeaderSubtitle">Выберите идеальную компанию для незабываемого вечера</p>
+</div>
 <div class="catalog-filters" id="catalogFilters"></div>
 <div class="girls-grid" id="girlsGrid"></div>
 </section>
@@ -463,9 +466,11 @@ background: radial-gradient(circle at 10% 20%, rgb(29, 13, 35) 0%, rgb(10, 10, 1
 <div class="admin-section">
 <h3>⚙️ Настройки сайта</h3>
 <div class="admin-card">
-<div class="form-group"><label>Название сайта (оглавление)</label><input type="text" class="form-input" id="admSiteTitle" value="BABYGIRL_LNR"></div>
-<div class="form-group"><label>Описание сайта</label><textarea class="form-input" id="admSiteDesc" rows="3" placeholder="Краткое описание сайта..."></textarea></div>
-<div class="form-group"><label>Номер телефона (отображается в шапке)</label><input type="text" class="form-input" id="admSitePhone" placeholder="+380XXXXXXXXX"></div>
+<div class="form-group"><label>Заголовок главной страницы</label><input type="text" class="form-input" id="admMainTitle" value="Анкеты девушек"></div>
+<div class="form-group"><label>Описание главной страницы</label><input type="text" class="form-input" id="admMainSubtitle" value="Выберите идеальную компанию для незабываемого вечера"></div>
+<div class="form-group"><label>Название вкладки браузера</label><input type="text" class="form-input" id="admSiteTitle" value="BABYGIRL_LNR"></div>
+<div class="form-group"><label>Описание сайта (SEO)</label><textarea class="form-input" id="admSiteDesc" rows="2" placeholder="Краткое описание..."></textarea></div>
+<div class="form-group"><label>Номер телефона (шапка)</label><input type="text" class="form-input" id="admSitePhone" placeholder="+7 XXX XXX-XX-XX"></div>
 <div class="admin-row" style="margin-top:12px"><button class="admin-btn primary" onclick="saveSiteSettings()">💾 Сохранить настройки</button></div>
 </div></div></div>
 </section>
@@ -484,8 +489,8 @@ background: radial-gradient(circle at 10% 20%, rgb(29, 13, 35) 0%, rgb(10, 10, 1
 <input type="text" class="chat-input" id="adminChatInput" placeholder="Ответить..." onkeypress="if(event.key==='Enter')sendAdminReply()">
 <button class="chat-send" onclick="sendAdminReply()">➤</button></div>
 <div style="padding:0 20px 15px;display:flex;gap:8px">
-<button class="admin-btn danger" onclick="clearChatHistory()" style="flex:1">🗑️ Очистить историю</button>
-<button class="admin-btn success" onclick="resetClientBot()" style="flex:1">✅ Завершить заказ</button>
+<button class="admin-btn danger" onclick="clearChatHistory()" style="flex:1">🗑️ Очистить</button>
+<button class="admin-btn success" onclick="resetClientBot()" style="flex:1">✅ Завершить</button>
 <button class="admin-btn secondary" onclick="closeAdminChat()" style="flex:1">Закрыть</button>
 </div>
 </div></div>
@@ -493,21 +498,21 @@ background: radial-gradient(circle at 10% 20%, rgb(29, 13, 35) 0%, rgb(10, 10, 1
 <script>
 const CITIES=['Луганск','Стаханов','Первомайск'];
 const DEFAULT_GIRLS=[
-{id:1,name:'Алина',city:'Луганск',photos:[],desc:'Нежная и романтичная девушка, люблю долгие прогулки и уютные вечера.',height:'168',weight:'52',breast:'2',age:'21',prefs:'Романтика, путешествия, кино',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
-{id:2,name:'Виктория',city:'Стаханов',photos:[],desc:'Яркая и страстная брюнетка с идеальной фигурой.',height:'172',weight:'55',breast:'3',age:'23',prefs:'Танцы, музыка',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'12000'}]},
-{id:3,name:'София',city:'Первомайск',photos:[],desc:'Студентка, модельная внешность.',height:'165',weight:'48',breast:'2',age:'20',prefs:'Фотография, литература',services:[{name:'Встреча',price:'2500'},{name:'Свидание',price:'4000'},{name:'Ночь',price:'8000'}]},
-{id:4,name:'Диана',city:'Луганск',photos:[],desc:'Опытная и уверенная в себе.',height:'170',weight:'58',breast:'3',age:'25',prefs:'Фитнес, SPA',services:[{name:'Встреча',price:'4000'},{name:'Свидание',price:'7000'},{name:'Ночь',price:'15000'}]},
-{id:5,name:'Мария',city:'Стаханов',photos:[],desc:'Рыжеволосая красавица с веснушками.',height:'163',weight:'50',breast:'2',age:'22',prefs:'Кулинария, книги',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
-{id:6,name:'Анастасия',city:'Первомайск',photos:[],desc:'Спортивная блондинка.',height:'175',weight:'56',breast:'3',age:'24',prefs:'Спорт, путешествия',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'13000'}]}
+{id:1,name:'Алина',city:'Луганск',photos:[],desc:'Нежная и романтичная девушка, люблю долгие прогулки.',height:'168',weight:'52',breast:'2',age:'21',prefs:'Романтика',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
+{id:2,name:'Виктория',city:'Стаханов',photos:[],desc:'Яркая и страстная брюнетка с идеальной фигурой.',height:'172',weight:'55',breast:'3',age:'23',prefs:'Танцы',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'12000'}]},
+{id:3,name:'София',city:'Первомайск',photos:[],desc:'Студентка, модельная внешность.',height:'165',weight:'48',breast:'2',age:'20',prefs:'Фото',services:[{name:'Встреча',price:'2500'},{name:'Свидание',price:'4000'},{name:'Ночь',price:'8000'}]},
+{id:4,name:'Диана',city:'Луганск',photos:[],desc:'Опытная и уверенная в себе.',height:'170',weight:'58',breast:'3',age:'25',prefs:'Фитнес',services:[{name:'Встреча',price:'4000'},{name:'Свидание',price:'7000'},{name:'Ночь',price:'15000'}]},
+{id:5,name:'Мария',city:'Стаханов',photos:[],desc:'Рыжеволосая красавица с веснушками.',height:'163',weight:'50',breast:'2',age:'22',prefs:'Кулинария',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
+{id:6,name:'Анастасия',city:'Первомайск',photos:[],desc:'Спортивная блондинка.',height:'175',weight:'56',breast:'3',age:'24',prefs:'Спорт',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'13000'}]}
 ];
-let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{title:'BABYGIRL_LNR',desc:'',phone:''},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null};
+let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{title:'BABYGIRL_LNR',desc:'',phone:'',mainTitle:'Анкеты девушек',mainSubtitle:'Выберите идеальную компанию для незабываемого вечера'},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null};
 let tempPhotos=[null,null,null,null];
 
 function init(){
 document.getElementById('ageModal').classList.add('show');
 loadState();
 if(state.currentUser)updateUIForLoggedUser();
-renderGirls();renderCatalogFilters();loadSiteSettings();
+renderGirls();renderCatalogFilters();loadSiteSettings();renderMainHeaders();
 window.addEventListener('scroll',()=>{document.getElementById('header').classList.toggle('scrolled',window.scrollY>20)});
 const bgVideo=document.getElementById('bgVideo');
 if(bgVideo){
@@ -523,6 +528,8 @@ try{const s=localStorage.getItem('bglr_state');if(s){const p=JSON.parse(s);state
 if(!state.girls||state.girls.length===0)state.girls=[...DEFAULT_GIRLS];
 if(!state.users||state.users.length===0)state.users=[{username:'admin',password:'admin123',role:'admin'}];
 if(!state.chats)state.chats={};
+if(!state.settings.mainTitle)state.settings.mainTitle='Анкеты девушек';
+if(!state.settings.mainSubtitle)state.settings.mainSubtitle='Выберите идеальную компанию для незабываемого вечера';
 }catch(e){state.girls=[...DEFAULT_GIRLS];state.users=[{username:'admin',password:'admin123',role:'admin'}];state.chats={}}
 }
 function saveState(){localStorage.setItem('bglr_state',JSON.stringify({currentUser:state.currentUser,girls:state.girls,users:state.users,chats:state.chats,settings:state.settings}))}
@@ -606,7 +613,7 @@ function addServiceRow(name='',price=''){
 const list=document.getElementById('servicesList');
 const div=document.createElement('div');
 div.className='service-item';
-div.innerHTML='<input type="text" class="form-input" placeholder="Название услуги" value="'+esc(name)+'"><input type="text" class="form-input service-price" placeholder="Цена (₴)" value="'+esc(price)+'"><button class="remove-service" onclick="this.parentElement.remove()">✕</button>';
+div.innerHTML='<input type="text" class="form-input" placeholder="Название" value="'+esc(name)+'"><input type="text" class="form-input service-price" placeholder="Цена (₽)" value="'+esc(price)+'"><button class="remove-service" onclick="this.parentElement.remove()">✕</button>';
 list.appendChild(div);
 }
 function getServicesFromList(){
@@ -635,11 +642,8 @@ const photos=tempPhotos.filter(p=>p!==null);
 if(!name)return showToast('Введите имя','error');
 if(editId){
 const idx=state.girls.findIndex(g=>g.id==editId);
-if(idx!==-1){
-state.girls[idx]={...state.girls[idx],name,city,height,weight,breast,age,desc,prefs,services,photos};
-}
-document.getElementById('editGirlId').value='';
-showToast('Анкета обновлена','success');
+if(idx!==-1){state.girls[idx]={...state.girls[idx],name,city,height,weight,breast,age,desc,prefs,services,photos};}
+document.getElementById('editGirlId').value='';showToast('Анкета обновлена','success');
 }else{
 const newId=state.girls.length>0?Math.max(...state.girls.map(g=>g.id))+1:1;
 state.girls.push({id:newId,name,city,photos,desc,height,weight,breast,age,prefs,services});
@@ -688,24 +692,33 @@ function renderAdminGirls(){
 const list=document.getElementById('adminGirlsList');
 if(state.girls.length===0){list.innerHTML='<div class="empty-state"><p>Нет анкет</p></div>';return}
 list.innerHTML=state.girls.map(g=>{
-const photoCount=(g.photos||[]).length;
-const svcCount=(g.services||[]).length;
-return '<div class="admin-list-item"><div class="info"><h4>'+g.name+' — '+g.city+'</h4><p>📏 '+g.height+'см • ⚖️ '+g.weight+'кг • 👙 '+g.breast+' • 🎂 '+g.age+' лет • 📷 '+photoCount+' фото • 📋 '+svcCount+' услуг</p></div><div class="actions"><button class="edit-btn" onclick="editGirl('+g.id+')">✏️</button><button class="delete-btn" onclick="deleteGirl('+g.id+')">🗑️</button></div></div>';
+const pc=(g.photos||[]).length,sc=(g.services||[]).length;
+return '<div class="admin-list-item"><div class="info"><h4>'+g.name+' — '+g.city+'</h4><p>📏 '+g.height+'см • ⚖️ '+g.weight+'кг • 👙 '+g.breast+' • 🎂 '+g.age+' лет • 📷 '+pc+' • 📋 '+sc+'</p></div><div class="actions"><button class="edit-btn" onclick="editGirl('+g.id+')">✏️</button><button class="delete-btn" onclick="deleteGirl('+g.id+')">🗑️</button></div></div>';
 }).join('');
 }
 function saveSiteSettings(){
+state.settings.mainTitle=document.getElementById('admMainTitle').value;
+state.settings.mainSubtitle=document.getElementById('admMainSubtitle').value;
 state.settings.title=document.getElementById('admSiteTitle').value;
 state.settings.desc=document.getElementById('admSiteDesc').value;
 state.settings.phone=document.getElementById('admSitePhone').value;
-saveState();updatePhoneDisplay();
+saveState();updatePhoneDisplay();renderMainHeaders();
 document.title=state.settings.title||'BABYGIRL_LNR';
 showToast('Настройки сохранены','success');
 }
 function loadSiteSettings(){
-if(state.settings.title)document.getElementById('admSiteTitle').value=state.settings.title;
-if(state.settings.desc)document.getElementById('admSiteDesc').value=state.settings.desc;
-if(state.settings.phone)document.getElementById('admSitePhone').value=state.settings.phone;
+document.getElementById('admMainTitle').value=state.settings.mainTitle;
+document.getElementById('admMainSubtitle').value=state.settings.mainSubtitle;
+document.getElementById('admSiteTitle').value=state.settings.title;
+document.getElementById('admSiteDesc').value=state.settings.desc;
+document.getElementById('admSitePhone').value=state.settings.phone;
 updatePhoneDisplay();
+}
+function renderMainHeaders(){
+const t=document.getElementById('mainHeaderTitle');
+const s=document.getElementById('mainHeaderSubtitle');
+if(t) t.textContent=state.settings.mainTitle;
+if(s) s.textContent=state.settings.mainSubtitle;
 }
 function updatePhoneDisplay(){
 const el=document.getElementById('headerPhone');
@@ -720,12 +733,10 @@ list.innerHTML=userIds.map(uid=>{
 const ch=state.chats[uid];
 const lastMsg=ch.messages[ch.messages.length-1];
 const lastText=lastMsg?(lastMsg.type==='bot'?'🤖 ':'')+((lastMsg.text||'').substring(0,50)):'';
-const botStatus=ch.botEnabled!==false?'Вкл':'Выкл';
-const botClass=ch.botEnabled!==false?'bot-on':'';
-const waitingClass=ch.waitingForOperator?'waiting':'';
-const statusClass=ch.waitingForOperator?'waiting':(ch.messages.length>2?'active':'idle');
-const statusText=ch.waitingForOperator?'⏳ Ожидание':'✅ Активен';
-return '<div class="chat-item '+waitingClass+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+statusClass+'">'+statusText+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Открыть чат</button><button class="toggle-bot '+botClass+'" onclick="toggleChatBot(\''+uid+'\')">🤖 Бот: '+botStatus+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️ Очистить</button></div></div>';
+const bs=ch.botEnabled!==false?'Вкл':'Выкл',bc=ch.botEnabled!==false?'bot-on':'';
+const wc=ch.waitingForOperator?'waiting':'',sc=ch.waitingForOperator?'waiting':(ch.messages.length>2?'active':'idle');
+const st=ch.waitingForOperator?'⏳ Ожидание':'✅ Активен';
+return '<div class="chat-item '+wc+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+sc+'">'+st+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Чат</button><button class="toggle-bot '+bc+'" onclick="toggleChatBot(\''+uid+'\')">🤖 '+bs+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️</button></div></div>';
 }).join('');
 }
 function toggleChatBot(uid){
@@ -762,14 +773,10 @@ function resetClientBot(){
 if(!state.adminChatWith)return;
 const chat=state.chats[state.adminChatWith];
 if(!chat)return;
-chat.botStep='greet';
-chat.waitingForOperator=false;
-chat.selectedGirl=null;
-chat.botEnabled=true;
+chat.botStep='greet';chat.waitingForOperator=false;chat.selectedGirl=null;chat.botEnabled=true;
 saveState();
 addBotMessage(state.adminChatWith,'🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
-renderAdminChatMessages();
-showToast('Бот сброшен для нового заказа','success');
+renderAdminChatMessages();showToast('Бот сброшен','success');
 }
 function sendAdminReply(){
 const inp=document.getElementById('adminChatInput'),text=inp.value.trim();
@@ -788,8 +795,8 @@ function startChatRefresh(){
 if(state.chatRefreshInterval)clearInterval(state.chatRefreshInterval);
 state.chatRefreshInterval=setInterval(()=>{
 if(state.currentSection==='admin'){
-const activeTab=document.querySelector('.admin-tab.active');
-if(activeTab&&activeTab.textContent.includes('Чаты'))renderAdminChats();
+const at=document.querySelector('.admin-tab.active');
+if(at&&at.textContent.includes('Чаты'))renderAdminChats();
 }
 },3000);
 }
@@ -833,7 +840,7 @@ addBotMessage(uid,'💰 Оплата девушке в руки\n\nНажмит�
 }
 if(chat.botStep==='girl_selected'||chat.botStep==='order'){
 let fs=null;if(chat.selectedGirl){fs=chat.selectedGirl.services.find(s=>lower.includes(s.name.toLowerCase()));if(!fs)fs=chat.selectedGirl.services.find(s=>lower.includes(s.price))}
-if(fs){addBotMessage(uid,'✅ Вы выбрали: '+fs.name+' — '+fs.price+'₴');
+if(fs){addBotMessage(uid,'✅ Вы выбрали: '+fs.name+' — '+fs.price+'₽');
 addBotMessage(uid,'🔄 Заявка в обработке. Оператор скоро свяжется.',{type:'processing'});
 chat.waitingForOperator=true;chat.botStep='waiting';saveState();return}
 }
@@ -847,19 +854,19 @@ let h='';chat.messages.forEach(msg=>{if(msg.type==='bot')h+='<div class="chat-ms
 c.innerHTML=h;c.scrollTop=c.scrollHeight;
 }
 function formatBotMessage(msg){let h=esc(msg.text).replace(/\n/g,'<br>');if(!msg.extra)return h;
-if(msg.extra.type==='profile'||msg.extra.type==='order_greeting'){if(msg.extra.type==='order_greeting')h='';const g=msg.extra.girl;const mainPhoto=(g.photos&&g.photos[0])||'';const ih=mainPhoto?'<img class="msg-profile-img" src="'+mainPhoto+'">':'<div class="msg-profile-img-placeholder">👩</div>';
-h+='<div class="msg-profile">'+ih+'<div class="msg-profile-info"><h4>'+g.name+' • '+g.city+'</h4><div class="price">'+g.services.map(s=>s.name+': '+s.price+'₴').join(', ')+'</div><div class="pay-note">💰 Оплата девушке в руки</div></div></div>'}
-if(msg.extra.type==='services'){const g=msg.extra.girl;h+='<div class="msg-services">'+g.services.map(s=>'<button class="msg-service-btn" onclick="selectService(\''+g.name+'\',\''+s.name+'\',\''+s.price+'\')">'+s.name+' — '+s.price+'₴</button>').join('')+'</div>'}
+if(msg.extra.type==='profile'||msg.extra.type==='order_greeting'){if(msg.extra.type==='order_greeting')h='';const g=msg.extra.girl;const mp=(g.photos&&g.photos[0])||'';const ih=mp?'<img class="msg-profile-img" src="'+mp+'">':'<div class="msg-profile-img-placeholder">👩</div>';
+h+='<div class="msg-profile">'+ih+'<div class="msg-profile-info"><h4>'+g.name+' • '+g.city+'</h4><div class="price">'+g.services.map(s=>s.name+': '+s.price+'₽').join(', ')+'</div><div class="pay-note">💰 Оплата девушке в руки</div></div></div>'}
+if(msg.extra.type==='services'){const g=msg.extra.girl;h+='<div class="msg-services">'+g.services.map(s=>'<button class="msg-service-btn" onclick="selectService(\''+g.name+'\',\''+s.name+'\',\''+s.price+'\')">'+s.name+' — '+s.price+'₽</button>').join('')+'</div>'}
 if(msg.extra.type==='girls_list'){h+='<div class="msg-services">'+msg.extra.girls.map(g=>'<button class="msg-service-btn" onclick="selectGirlByName(\''+g.name+'\')">'+g.name+' — '+g.city+'</button>').join('')+'</div>'}
 return h}
-function selectService(gn,sn,sp){if(!state.currentUser)return;const uid=state.currentUser.username;addUserMessage(uid,gn+' — '+sn+': '+sp+'₴');processBotMessage(uid,sn)}
+function selectService(gn,sn,sp){if(!state.currentUser)return;const uid=state.currentUser.username;addUserMessage(uid,gn+' — '+sn+': '+sp+'₽');processBotMessage(uid,sn)}
 function selectGirlByName(n){if(!state.currentUser)return;const uid=state.currentUser.username;addUserMessage(uid,n);processBotMessage(uid,n)}
 function renderCatalogFilters(){const c=document.getElementById('catalogFilters');let h='<button class="filter-btn '+(state.currentCityFilter==='all'?'active':'')+'" onclick="filterCity(\'all\')">Все</button>';CITIES.forEach(city=>{h+='<button class="filter-btn '+(state.currentCityFilter===city?'active':'')+'" onclick="filterCity(\''+city+'\')">'+city+'</button>'});c.innerHTML=h}
 function filterCity(city){state.currentCityFilter=city;renderCatalogFilters();renderGirls()}
 function getFilteredGirls(){return state.currentCityFilter==='all'?state.girls:state.girls.filter(g=>g.city===state.currentCityFilter)}
 function renderGirls(){const girls=getFilteredGirls(),grid=document.getElementById('girlsGrid');if(girls.length===0){grid.innerHTML='<div class="empty-state"><div class="icon">😔</div><p>Анкет пока нет</p></div>';return}grid.innerHTML=girls.map(g=>createGirlCard(g)).join('')}
-function createGirlCard(g){const mainPhoto=(g.photos&&g.photos[0])||'';const imgH=mainPhoto?'<img class="girl-card-img" src="'+mainPhoto+'" alt="'+g.name+'">':'<div class="girl-card-img-placeholder">👩</div>';return '<div class="girl-card" onclick="openProfile('+g.id+')">'+imgH+'<div class="girl-card-info"><div class="girl-card-top"><span class="girl-card-name">'+g.name+'</span><span class="girl-card-city">'+g.city+'</span></div><p class="girl-card-desc">'+g.desc+'</p><div class="girl-card-stats"><span class="stat-tag">📏 '+g.height+' см</span><span class="stat-tag">⚖️ '+g.weight+' кг</span><span class="stat-tag">👙 '+g.breast+'</span><span class="stat-tag">🎂 '+g.age+' лет</span></div><div class="girl-card-payment">💰 Оплата девушкам в руки</div><div class="girl-card-actions"><button class="btn-open" onclick="event.stopPropagation();openProfile('+g.id+')">Открыть анкету</button><button class="btn-order" onclick="event.stopPropagation();orderGirl('+g.id+')">Заказать</button></div></div></div>'}
-function openProfile(id){const g=state.girls.find(x=>x.id===id);if(!g)return;const mainPhoto=(g.photos&&g.photos[0])||'';const imgH=mainPhoto?'<img class="profile-modal-img" src="'+mainPhoto+'" alt="'+g.name+'">':'<div class="profile-modal-img-placeholder">👩</div>';const sH=(g.services||[]).map(s=>'<div class="profile-service"><span class="name">'+s.name+'</span><span class="price">'+s.price+'₴</span></div>').join('');document.getElementById('profileContent').innerHTML=imgH+'<div class="profile-detail"><h2>'+g.name+'</h2><div class="city">📍 '+g.city+'</div><p class="desc">'+g.desc+'</p><div class="section-title">Характеристики</div><div class="profile-stats-grid"><div class="profile-stat"><div class="label">Рост</div><div class="value">'+g.height+' см</div></div><div class="profile-stat"><div class="label">Вес</div><div class="value">'+g.weight+' кг</div></div><div class="profile-stat"><div class="label">Грудь</div><div class="value">'+g.breast+'</div></div><div class="profile-stat"><div class="label">Возраст</div><div class="value">'+g.age+' лет</div></div></div><div class="section-title">Предпочтения</div><p class="desc">'+g.prefs+'</p><div class="section-title">Услуги</div><div class="profile-services">'+sH+'</div><div class="profile-payment">💰 Оплата девушкам в руки</div><button class="profile-order-btn" onclick="orderGirl('+g.id+');closeProfileModal()">Заказать</button></div>';document.getElementById('profileModal').classList.add('show')}
+function createGirlCard(g){const mp=(g.photos&&g.photos[0])||'';const ih=mp?'<img class="girl-card-img" src="'+mp+'" alt="'+g.name+'">':'<div class="girl-card-img-placeholder">👩</div>';return '<div class="girl-card" onclick="openProfile('+g.id+')">'+ih+'<div class="girl-card-info"><div class="girl-card-top"><span class="girl-card-name">'+g.name+'</span><span class="girl-card-city">'+g.city+'</span></div><p class="girl-card-desc">'+g.desc+'</p><div class="girl-card-stats"><span class="stat-tag">📏 '+g.height+' см</span><span class="stat-tag">⚖️ '+g.weight+' кг</span><span class="stat-tag">👙 '+g.breast+'</span><span class="stat-tag">🎂 '+g.age+' лет</span></div><div class="girl-card-payment">💰 Оплата девушкам в руки</div><div class="girl-card-actions"><button class="btn-open" onclick="event.stopPropagation();openProfile('+g.id+')">Открыть анкету</button><button class="btn-order" onclick="event.stopPropagation();orderGirl('+g.id+')">Заказать</button></div></div></div>'}
+function openProfile(id){const g=state.girls.find(x=>x.id===id);if(!g)return;const mp=(g.photos&&g.photos[0])||'';const ih=mp?'<img class="profile-modal-img" src="'+mp+'" alt="'+g.name+'">':'<div class="profile-modal-img-placeholder">👩</div>';const sH=(g.services||[]).map(s=>'<div class="profile-service"><span class="name">'+s.name+'</span><span class="price">'+s.price+'₽</span></div>').join('');document.getElementById('profileContent').innerHTML=ih+'<div class="profile-detail"><h2>'+g.name+'</h2><div class="city">📍 '+g.city+'</div><p class="desc">'+g.desc+'</p><div class="section-title">Характеристики</div><div class="profile-stats-grid"><div class="profile-stat"><div class="label">Рост</div><div class="value">'+g.height+' см</div></div><div class="profile-stat"><div class="label">Вес</div><div class="value">'+g.weight+' кг</div></div><div class="profile-stat"><div class="label">Грудь</div><div class="value">'+g.breast+'</div></div><div class="profile-stat"><div class="label">Возраст</div><div class="value">'+g.age+' лет</div></div></div><div class="section-title">Предпочтения</div><p class="desc">'+g.prefs+'</p><div class="section-title">Услуги</div><div class="profile-services">'+sH+'</div><div class="profile-payment">💰 Оплата девушкам в руки</div><button class="profile-order-btn" onclick="orderGirl('+g.id+');closeProfileModal()">Заказать</button></div>';document.getElementById('profileModal').classList.add('show')}
 function closeProfileModal(){document.getElementById('profileModal').classList.remove('show')}
 function orderGirl(id){checkAuth(()=>{const g=state.girls.find(x=>x.id===id);if(!g)return;navigateTo('chat');setTimeout(()=>sendBotOrderMessage(g),500)})}
 function openCitiesModal(){if(!state.currentUser){openAuthModal();return}const list=document.getElementById('citiesList');list.innerHTML=CITIES.map(city=>{const cnt=state.girls.filter(g=>g.city===city).length;return '<div class="city-item" onclick="selectCity(\''+city+'\')"><span class="name">'+city+'</span><span class="count">'+cnt+' анкет</span></div>'}).join('');document.getElementById('citiesModal').classList.add('show')}
