@@ -73,6 +73,8 @@ const chatSchema = new mongoose.Schema({
 });
 
 const settingsSchema = new mongoose.Schema({
+  mainTitle: { type: String, default: 'Анкеты девушек' },
+  mainSubtitle: { type: String, default: 'Выберите идеальную компанию для незабываемого вечера' },
   title: { type: String, default: 'BABYGIRL_LNR' },
   desc: String,
   phone: String,
@@ -94,15 +96,22 @@ async function initDefaults() {
 
   const settingsExist = await Settings.findOne();
   if (!settingsExist) {
-    await Settings.create({ title: 'BABYGIRL_LNR', desc: '', phone: '', globalBotEnabled: true });
+    await Settings.create({ 
+      mainTitle: 'Анкеты девушек', 
+      mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера',
+      title: 'BABYGIRL_LNR', 
+      phone: '', 
+      globalBotEnabled: true 
+    });
+    console.log('✅ Default settings created');
   }
 
   const girlsCount = await Girl.countDocuments();
   if (girlsCount === 0) {
     const defaultGirls = [
-      { name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная девушка', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{ name: 'Встреча', price: '3000' }, { name: 'Свидание', price: '5000' }, { name: 'Ночь', price: '10000' }] },
-      { name: 'Виктория', city: 'Стаханов', photos: [], desc: 'Яркая и страстная брюнетка', height: '172', weight: '55', breast: '3', age: '23', prefs: 'Танцы', services: [{ name: 'Встреча', price: '3500' }, { name: 'Свидание', price: '6000' }, { name: 'Ночь', price: '12000' }] },
-      { name: 'София', city: 'Первомайск', photos: [], desc: 'Студентка, модельная внешность', height: '165', weight: '48', breast: '2', age: '20', prefs: 'Фотография', services: [{ name: 'Встреча', price: '2500' }, { name: 'Свидание', price: '4000' }, { name: 'Ночь', price: '8000' }] }
+      { name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная девушка, люблю долгие прогулки.', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{ name: 'Встреча', price: '3000' }, { name: 'Свидание', price: '5000' }, { name: 'Ночь', price: '10000' }] },
+      { name: 'Виктория', city: 'Стаханов', photos: [], desc: 'Яркая и страстная брюнетка с идеальной фигурой.', height: '172', weight: '55', breast: '3', age: '23', prefs: 'Танцы', services: [{ name: 'Встреча', price: '3500' }, { name: 'Свидание', price: '6000' }, { name: 'Ночь', price: '12000' }] },
+      { name: 'София', city: 'Первомайск', photos: [], desc: 'Студентка, модельная внешность.', height: '165', weight: '48', breast: '2', age: '20', prefs: 'Фотография', services: [{ name: 'Встреча', price: '2500' }, { name: 'Свидание', price: '4000' }, { name: 'Ночь', price: '8000' }] }
     ];
     await Girl.insertMany(defaultGirls);
     console.log('✅ Default girls created');
@@ -112,19 +121,42 @@ async function initDefaults() {
 initDefaults();
 
 // ===== API ROUTES =====
-app.get('/api/girls', async (req, res) => {
+
+// Settings
+app.get('/api/settings', async (req, res) => {
   try {
-    const girls = await Girl.find().sort({ createdAt: -1 });
-    res.json(girls);
+    let settings = await Settings.findOne();
+    if (!settings) settings = await Settings.create({ mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
+    res.json(settings);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-app.get('/api/settings', async (req, res) => {
+app.put('/api/settings', async (req, res) => {
   try {
-    const settings = await Settings.findOne();
-    res.json(settings || { title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
+    const { mainTitle, mainSubtitle, title, desc, phone } = req.body;
+    let settings = await Settings.findOne();
+    if (settings) {
+      settings.mainTitle = mainTitle;
+      settings.mainSubtitle = mainSubtitle;
+      settings.title = title;
+      settings.desc = desc;
+      settings.phone = phone;
+      await settings.save();
+    } else {
+      settings = await Settings.create({ mainTitle, mainSubtitle, title, desc, phone, globalBotEnabled: true });
+    }
+    res.json({ success: true, settings });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/girls', async (req, res) => {
+  try {
+    const girls = await Girl.find().sort({ createdAt: -1 });
+    res.json(girls);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -169,18 +201,17 @@ app.post('/api/chat/send', async (req, res) => {
     let botReply = null;
     const settings = await Settings.findOne();
     const isBotActive = settings?.globalBotEnabled !== false && chat.botEnabled;
+    const CITIES = ['луганск', 'стаханов', 'первомайск'];
     
     if (isBotActive && !chat.waitingForOperator) {
       const lower = text.toLowerCase();
-      const CITIES = ['луганск', 'стаханов', 'первомайск'];
-      
       if (chat.botStep === 'greet' || chat.botStep === 'asking_city') {
         const foundCity = CITIES.find(c => lower.includes(c));
         if (foundCity) {
           const cityGirls = await Girl.find({ city: new RegExp(foundCity, 'i') });
           if (cityGirls.length > 0) {
             chat.botStep = 'picking_girl';
-            botReply = { text: `Отлично! В ${foundCity.charAt(0).toUpperCase() + foundCity.slice(1)} есть ${cityGirls.length} анкет. Вот доступные:`, type: 'girls_list', data: cityGirls };
+            botReply = { text: `Отлично! В ${foundCity.charAt(0).toUpperCase() + foundCity.slice(1)} есть ${cityGirls.length} анкет. Вот доступные:`, type: 'girls_list', girls: cityGirls };
           } else {
             botReply = { text: `В городе ${foundCity} пока нет анкет. Попробуйте другой.`, type: 'text' };
             chat.botStep = 'asking_city';
@@ -194,14 +225,14 @@ app.post('/api/chat/send', async (req, res) => {
         if (foundGirl) {
           chat.selectedGirl = foundGirl;
           chat.botStep = 'girl_selected';
-          botReply = { text: '💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:', type: 'services', data: foundGirl };
+          botReply = { text: '💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:', type: 'services', girl: foundGirl };
         } else {
           botReply = { text: 'Напишите имя девушки из списка.', type: 'text' };
         }
       } else if (chat.botStep === 'girl_selected' && chat.selectedGirl) {
         const foundService = chat.selectedGirl.services.find(s => lower.includes(s.name.toLowerCase()));
         if (foundService) {
-          botReply = { text: `✅ Вы выбрали: ${foundService.name} — ${foundService.price}₴\nЗаявка в обработке. Оператор скоро свяжется.`, type: 'processing' };
+          botReply = { text: `✅ Вы выбрали: ${foundService.name} — ${foundService.price}₽\nЗаявка в обработке. Оператор скоро свяжется.`, type: 'processing' };
           chat.waitingForOperator = true;
           chat.botStep = 'waiting';
         } else {
@@ -250,6 +281,9 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     if (!chat) return res.status(404).json({ error: 'Chat not found' });
     chat.messages.push({ type: 'bot', text: `[Оператор] ${text}`, time: new Date() });
     chat.waitingForOperator = false;
+    chat.botStep = 'greet';
+    chat.selectedGirl = null;
+    chat.botEnabled = true;
     await chat.save();
     res.json({ success: true });
   } catch (error) {
@@ -293,25 +327,6 @@ app.post('/api/admin/girls', async (req, res) => {
       await Girl.findByIdAndDelete(girl._id);
       res.json({ success: true });
     }
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.put('/api/admin/settings', async (req, res) => {
-  try {
-    const { title, desc, phone, globalBotEnabled } = req.body;
-    let settings = await Settings.findOne();
-    if (settings) {
-      settings.title = title;
-      settings.desc = desc;
-      settings.phone = phone;
-      settings.globalBotEnabled = globalBotEnabled;
-      await settings.save();
-    } else {
-      settings = await Settings.create({ title, desc, phone, globalBotEnabled });
-    }
-    res.json({ success: true, settings });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
