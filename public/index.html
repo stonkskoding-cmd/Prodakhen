@@ -263,11 +263,11 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 <script>
 const CITIES=['Луганск','Стаханов','Первомайск'];
 const DEFAULT_GIRLS=[
-{id:1,name:'Алина',city:'Луганск',photos:[],desc:'Нежная и романтичная девушка, люблю долгие прогулки.',height:'168',weight:'52',breast:'2',age:'21',prefs:'Романтика',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
-{id:2,name:'Виктория',city:'Стаханов',photos:[],desc:'Яркая и страстная брюнетка с идеальной фигурой.',height:'172',weight:'55',breast:'3',age:'23',prefs:'Танцы',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'12000'}]},
+{id:1,name:'Алина',city:'Луганск',photos:[],desc:'Нежная и романтичная девушка.',height:'168',weight:'52',breast:'2',age:'21',prefs:'Романтика',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
+{id:2,name:'Виктория',city:'Стаханов',photos:[],desc:'Яркая и страстная брюнетка.',height:'172',weight:'55',breast:'3',age:'23',prefs:'Танцы',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'12000'}]},
 {id:3,name:'София',city:'Первомайск',photos:[],desc:'Студентка, модельная внешность.',height:'165',weight:'48',breast:'2',age:'20',prefs:'Фото',services:[{name:'Встреча',price:'2500'},{name:'Свидание',price:'4000'},{name:'Ночь',price:'8000'}]},
-{id:4,name:'Диана',city:'Луганск',photos:[],desc:'Опытная и уверенная в себе.',height:'170',weight:'58',breast:'3',age:'25',prefs:'Фитнес',services:[{name:'Встреча',price:'4000'},{name:'Свидание',price:'7000'},{name:'Ночь',price:'15000'}]},
-{id:5,name:'Мария',city:'Стаханов',photos:[],desc:'Рыжеволосая красавица с веснушками.',height:'163',weight:'50',breast:'2',age:'22',prefs:'Кулинария',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
+{id:4,name:'Диана',city:'Луганск',photos:[],desc:'Опытная и уверенная.',height:'170',weight:'58',breast:'3',age:'25',prefs:'Фитнес',services:[{name:'Встреча',price:'4000'},{name:'Свидание',price:'7000'},{name:'Ночь',price:'15000'}]},
+{id:5,name:'Мария',city:'Стаханов',photos:[],desc:'Рыжеволосая красавица.',height:'163',weight:'50',breast:'2',age:'22',prefs:'Кулинария',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
 {id:6,name:'Анастасия',city:'Первомайск',photos:[],desc:'Спортивная блондинка.',height:'175',weight:'56',breast:'3',age:'24',prefs:'Спорт',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'13000'}]}
 ];
 let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{mainTitle:'Анкеты девушек',mainSubtitle:'Выберите идеальную компанию для незабываемого вечера',title:'BABYGIRL_LNR',desc:'',phone:''},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null};
