@@ -7,13 +7,11 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
-// Trust proxy for correct IP logging
 app.set('trust proxy', 1);
 
-// Rate Limiting (Security)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 100, // Лимит запросов
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -23,20 +21,16 @@ app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ===== MONGODB CONNECTION =====
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('✅ MongoDB connected successfully'))
+.then(() => console.log('✅ MongoDB connected'))
 .catch(err => {
-  console.error('❌ MongoDB connection error:', err.message);
+  console.error('❌ MongoDB error:', err.message);
   process.exit(1);
 });
 
-// ===== DATABASE MODELS =====
-
-// Анкеты девушек
 const girlSchema = new mongoose.Schema({
   name: { type: String, required: true },
   city: { type: String, required: true },
@@ -51,7 +45,6 @@ const girlSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Пользователи
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -59,13 +52,12 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Чаты
 const chatSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
   messages: [{
     type: { type: String, enum: ['user', 'bot', 'system'], required: true },
     text: String,
-    extra: mongoose.Schema.Types.Mixed, // Для хранения данных о девушке/услуге
+    extra: mongoose.Schema.Types.Mixed,
     time: { type: Date, default: Date.now }
   }],
   waitingForOperator: { type: Boolean, default: false },
@@ -75,7 +67,6 @@ const chatSchema = new mongoose.Schema({
   lastActivity: { type: Date, default: Date.now }
 });
 
-// Настройки сайта (Глобальные)
 const settingsSchema = new mongoose.Schema({
   mainTitle: { type: String, default: 'Анкеты девушек' },
   mainSubtitle: { type: String, default: 'Выберите идеальную компанию для незабываемого вечера' },
@@ -90,26 +81,13 @@ const User = mongoose.model('User', userSchema);
 const Chat = mongoose.model('Chat', chatSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 
-// ===== INIT DEFAULT DATA =====
 async function initDefaults() {
-  // Создаем админа, если нет
   if (!(await User.findOne({ username: 'admin' }))) {
     await User.create({ username: 'admin', password: 'admin123', role: 'admin' });
-    console.log('🔑 Default admin created: admin / admin123');
   }
-  
-  // Создаем настройки, если нет
   if (!(await Settings.findOne())) {
-    await Settings.create({ 
-      mainTitle: 'Анкеты девушек', 
-      mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', 
-      title: 'BABYGIRL_LNR', 
-      phone: '', 
-      globalBotEnabled: true 
-    });
+    await Settings.create({ mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
   }
-
-  // Создаем демо-анкеты, если база пуста
   if ((await Girl.countDocuments()) === 0) {
     await Girl.insertMany([
       { name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная девушка.', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{ name: 'Встреча', price: '3000' }, { name: 'Свидание', price: '5000' }, { name: 'Ночь', price: '10000' }] },
@@ -120,9 +98,7 @@ async function initDefaults() {
 }
 initDefaults();
 
-// ===== API ROUTES =====
-
-// 1. Настройки сайта (Чтение и Запись)
+// Settings API
 app.get('/api/settings', async (req, res) => {
   try {
     let s = await Settings.findOne();
@@ -145,12 +121,10 @@ app.put('/api/settings', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// 2. Анкеты
 app.get('/api/girls', async (req, res) => {
   try { res.json(await Girl.find().sort({ createdAt: -1 })); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// 3. Авторизация и Регистрация
 app.post('/api/auth', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -172,29 +146,25 @@ app.post('/api/register', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// 4. ЧАТ (Клиент -> Бот/Сервер)
+// ===== КЛЮЧЕВОЙ ENDPOINT ДЛЯ ОТПРАВКИ СООБЩЕНИЙ =====
 app.post('/api/chat/send', async (req, res) => {
   try {
     const { username, text } = req.body;
+    if (!username || !text) return res.status(400).json({ error: 'Username and text required' });
+
     let chat = await Chat.findOne({ userId: username });
-    
-    // Создаем чат если его нет
     if (!chat) chat = await Chat.create({ userId: username, messages: [], waitingForOperator: false, botEnabled: true, botStep: 'greet' });
-    
-    // Сохраняем сообщение клиента
+
     chat.messages.push({ type: 'user', text, time: new Date() });
     chat.lastActivity = new Date();
-    
+
     let botReply = null;
     const settings = await Settings.findOne();
     const isBotActive = settings?.globalBotEnabled !== false && chat.botEnabled;
     const CITIES = ['луганск', 'стаханов', 'первомайск'];
-    
-    // Логика бота
+
     if (isBotActive && !chat.waitingForOperator) {
       const lower = text.toLowerCase();
-      
-      // Шаг 1: Город
       if (chat.botStep === 'greet' || chat.botStep === 'asking_city') {
         const fc = CITIES.find(c => lower.includes(c));
         if (fc) {
@@ -203,16 +173,14 @@ app.post('/api/chat/send', async (req, res) => {
             chat.botStep = 'picking_girl';
             botReply = { text: `Отлично! В ${fc.charAt(0).toUpperCase() + fc.slice(1)} есть ${cg.length} анкет. Вот доступные:`, type: 'girls_list', girls: cg };
           } else {
-            botReply = { text: `В городе ${fc} пока нет анкет. Попробуйте другой.`, type: 'text' };
+            botReply = { text: `В городе ${fc} пока нет анкет.`, type: 'text' };
             chat.botStep = 'asking_city';
           }
         } else {
           botReply = { text: 'Уточните ваш город (Луганск, Стаханов или Первомайск).', type: 'text' };
           chat.botStep = 'asking_city';
         }
-      } 
-      // Шаг 2: Выбор девушки
-      else if (chat.botStep === 'picking_girl') {
+      } else if (chat.botStep === 'picking_girl') {
         const fg = await Girl.findOne({ name: new RegExp(lower, 'i') });
         if (fg) {
           chat.selectedGirl = fg; chat.botStep = 'girl_selected';
@@ -220,9 +188,7 @@ app.post('/api/chat/send', async (req, res) => {
         } else {
           botReply = { text: 'Напишите имя девушки из списка.', type: 'text' };
         }
-      } 
-      // Шаг 3: Выбор услуги
-      else if (chat.botStep === 'girl_selected' && chat.selectedGirl) {
+      } else if (chat.botStep === 'girl_selected' && chat.selectedGirl) {
         const fs = chat.selectedGirl.services.find(s => lower.includes(s.name.toLowerCase()));
         if (fs) {
           botReply = { text: `✅ Вы выбрали: ${fs.name} — ${fs.price}₽\nЗаявка в обработке.`, type: 'processing' };
@@ -230,43 +196,33 @@ app.post('/api/chat/send', async (req, res) => {
         } else {
           botReply = { text: 'Напишите название услуги.', type: 'text' };
         }
-      } 
-      // Ожидание оператора
-      else if (chat.botStep === 'waiting') {
+      } else if (chat.botStep === 'waiting') {
         botReply = { text: 'Заявка в обработке, ожидайте оператора.', type: 'text' };
       }
     } else if (!isBotActive && !chat.waitingForOperator) {
       chat.waitingForOperator = true;
     }
-    
-    // Сохраняем ответ бота
+
     if (botReply) chat.messages.push({ type: 'bot', text: botReply.text, extra: botReply, time: new Date() });
-    
     await chat.save();
     res.json({ success: true, reply: botReply });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  } catch (e) { console.error('Chat error:', e); res.status(500).json({ error: 'Server error' }); }
 });
 
-// Получение истории чата клиентом
 app.get('/api/chat/:username', async (req, res) => {
   try { const c = await Chat.findOne({ userId: req.params.username }); res.json({ messages: c?.messages || [] }); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// ===== ADMIN ROUTES =====
-
-// Список всех чатов (для обновления списка)
 app.get('/api/admin/chats', async (req, res) => {
   try { res.json(await Chat.find().sort({ lastActivity: -1 })); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Ответ оператора
 app.post('/api/admin/chat/reply', async (req, res) => {
   try {
     const { userId, text } = req.body;
     const chat = await Chat.findOne({ userId });
     if (!chat) return res.status(404).json({ error: 'Chat not found' });
     
-    // ✅ УДАЛЕНИЕ СООБЩЕНИЯ "В ОБРАБОТКЕ" ПЕРЕД ОТВЕТОМ
     if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].extra?.type === 'processing') {
       chat.messages.pop();
     }
@@ -281,7 +237,6 @@ app.post('/api/admin/chat/reply', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Очистка истории чата (сохраняет чат в списке)
 app.put('/api/admin/chat/:userId/clear', async (req, res) => {
   try {
     const chat = await Chat.findOne({ userId: req.params.userId });
@@ -297,7 +252,6 @@ app.put('/api/admin/chat/:userId/clear', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// ✅ ПОЛНОЕ УДАЛЕНИЕ ЧАТА (удаляет из списка)
 app.delete('/api/admin/chat/:userId', async (req, res) => {
   try {
     await Chat.findOneAndDelete({ userId: req.params.userId });
@@ -305,7 +259,6 @@ app.delete('/api/admin/chat/:userId', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Вкл/Выкл бота
 app.patch('/api/admin/chat/:userId/toggle-bot', async (req, res) => {
   try {
     const { enabled } = req.body;
@@ -315,7 +268,6 @@ app.patch('/api/admin/chat/:userId/toggle-bot', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Управление анкетами
 app.post('/api/admin/girls', async (req, res) => {
   try {
     const { action, girl } = req.body;
@@ -325,7 +277,6 @@ app.post('/api/admin/girls', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Раздача фронтенда
 app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
 const PORT = process.env.PORT || 3000;
