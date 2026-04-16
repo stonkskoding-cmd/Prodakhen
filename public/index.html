@@ -286,7 +286,7 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 </head>
 <body>
 <div class="video-bg" id="videoBg">
-<video autoplay muted loop playsinline webkit-playsinline preload="auto" id="bgVideo">
+<video autoplay muted loop playsinline webkit-playsinline preload="auto" id="bgVideo" poster="image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
 <source src="video/bg.mp4" type="video/mp4">
 </video>
 <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
@@ -437,11 +437,6 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 <div class="admin-chat-input-wrap">
 <input type="text" class="chat-input" id="adminChatInput" placeholder="Ответить..." onkeypress="if(event.key==='Enter')sendAdminReply()">
 <button class="chat-send" onclick="sendAdminReply()">➤</button></div>
-<div style="padding:0 20px 15px;display:flex;gap:8px">
-<button class="admin-btn danger" onclick="clearChatHistory()" style="flex:1">🗑️ Очистить историю</button>
-<button class="admin-btn success" onclick="resetClientBot()" style="flex:1">✅ Завершить заказ</button>
-<button class="admin-btn secondary" onclick="closeAdminChat()" style="flex:1">Закрыть</button>
-</div>
 </div></div>
 
 <script>
@@ -454,10 +449,7 @@ const DEFAULT_GIRLS=[
 {id:5,name:'Мария',city:'Стаханов',photos:[],desc:'Рыжеволосая красавица с веснушками.',height:'163',weight:'50',breast:'2',age:'22',prefs:'Кулинария, книги',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
 {id:6,name:'Анастасия',city:'Первомайск',photos:[],desc:'Спортивная блондинка.',height:'175',weight:'56',breast:'3',age:'24',prefs:'Спорт, путешествия',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'13000'}]}
 ];
-
 let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{title:'BABYGIRL_LNR',desc:'',phone:''},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null};
-let tempPhotos=[null,null,null,null];
-
 function init(){
 document.getElementById('ageModal').classList.add('show');
 loadState();
@@ -473,7 +465,6 @@ document.addEventListener('click',playOnce,{once:true});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')bgVideo.play().catch(()=>{})})
 }
 }
-
 function loadState(){
 try{const s=localStorage.getItem('bglr_state');if(s){const p=JSON.parse(s);state={...state,...p}}
 if(!state.girls||state.girls.length===0)state.girls=[...DEFAULT_GIRLS];
@@ -481,13 +472,10 @@ if(!state.users||state.users.length===0)state.users=[{username:'admin',password:
 if(!state.chats)state.chats={};
 }catch(e){state.girls=[...DEFAULT_GIRLS];state.users=[{username:'admin',password:'admin123',role:'admin'}];state.chats={}}
 }
-
 function saveState(){localStorage.setItem('bglr_state',JSON.stringify({currentUser:state.currentUser,girls:state.girls,users:state.users,chats:state.chats,settings:state.settings}))}
-
 function confirmAge(){document.getElementById('ageModal').classList.remove('show')}
 function denyAge(){window.location.href='https://google.com'}
 function closeAgeModal(){}
-
 function switchAuthTab(tab){
 document.querySelectorAll('.auth-tab').forEach((t,i)=>{t.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1))});
 document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
@@ -521,7 +509,6 @@ showToast('Вы вышли','success');
 }
 function updateUIForLoggedUser(){document.getElementById('pdName').textContent='👤 '+state.currentUser.username;document.getElementById('adminBtn').style.display=state.currentUser.role==='admin'?'flex':'none'}
 function checkAuth(cb){if(!state.currentUser){openAuthModal();return false}cb();return true}
-
 function toggleProfileDropdown(){if(!state.currentUser){openAuthModal();return}document.getElementById('profileDropdown').classList.toggle('show')}
 function closeProfileDropdown(){document.getElementById('profileDropdown').classList.remove('show')}
 document.addEventListener('click',e=>{const pd=document.getElementById('profileDropdown');if(pd.classList.contains('show')&&!pd.contains(e.target)&&!e.target.closest('.header-profile-btn')){pd.classList.remove('show')}});
@@ -535,7 +522,6 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));c
 state.currentSection=section;window.scrollTo({top:0,behavior:'smooth'});
 if(section!=='admin')stopChatRefresh();
 }
-
 function switchAdminTab(tabId){
 document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
 document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
@@ -544,7 +530,7 @@ document.getElementById(tabId).classList.add('active');
 if(tabId==='chats-tab'){renderAdminChats();startChatRefresh()}
 else if(tabId==='girls-tab')renderAdminGirls();
 }
-
+let tempPhotos=[null,null,null,null];
 function uploadPhoto(idx){document.querySelectorAll('#photoUploadArea .photo-slot input')[idx].click()}
 function handlePhoto(idx,input){
 const f=input.files[0];if(!f)return;
@@ -564,7 +550,6 @@ html+='<div class="photo-slot" onclick="uploadPhoto('+i+')"><span class="placeho
 }}
 area.innerHTML=html;
 }
-
 function addServiceRow(name='',price=''){
 const list=document.getElementById('servicesList');
 const div=document.createElement('div');
@@ -583,7 +568,6 @@ if(name)services.push({name,price:price||'0'});
 });
 return services;
 }
-
 function saveGirl(){
 const editId=document.getElementById('editGirlId').value;
 const name=document.getElementById('admGirlName').value.trim();
@@ -657,7 +641,6 @@ const svcCount=(g.services||[]).length;
 return '<div class="admin-list-item"><div class="info"><h4>'+g.name+' — '+g.city+'</h4><p>📏 '+g.height+'см • ⚖️ '+g.weight+'кг • 👙 '+g.breast+' • 🎂 '+g.age+' лет • 📷 '+photoCount+' фото • 📋 '+svcCount+' услуг</p></div><div class="actions"><button class="edit-btn" onclick="editGirl('+g.id+')">✏️</button><button class="delete-btn" onclick="deleteGirl('+g.id+')">🗑️</button></div></div>';
 }).join('');
 }
-
 function saveSiteSettings(){
 state.settings.title=document.getElementById('admSiteTitle').value;
 state.settings.desc=document.getElementById('admSiteDesc').value;
@@ -677,7 +660,6 @@ const el=document.getElementById('headerPhone');
 if(state.settings.phone){el.classList.remove('hidden');el.textContent='📞 '+state.settings.phone;el.href='tel:'+state.settings.phone.replace(/\s/g,'')}
 else{el.classList.add('hidden')}
 }
-
 function renderAdminChats(){
 const list=document.getElementById('adminChatList');
 const userIds=Object.keys(state.chats);
@@ -691,8 +673,14 @@ const botClass=ch.botEnabled!==false?'bot-on':'';
 const waitingClass=ch.waitingForOperator?'waiting':'';
 const statusClass=ch.waitingForOperator?'waiting':(ch.messages.length>2?'active':'idle');
 const statusText=ch.waitingForOperator?'⏳ Ожидание':'✅ Активен';
-return '<div class="chat-item '+waitingClass+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+statusClass+'">'+statusText+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Открыть чат</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️ Очистить</button></div></div>';
+return '<div class="chat-item '+waitingClass+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+statusClass+'">'+statusText+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Открыть чат</button><button class="toggle-bot '+botClass+'" onclick="toggleChatBot(\''+uid+'\')">🤖 Бот: '+botStatus+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️ Очистить</button></div></div>';
 }).join('');
+}
+function toggleChatBot(uid){
+if(!state.chats[uid])return;
+state.chats[uid].botEnabled=!state.chats[uid].botEnabled;
+saveState();renderAdminChats();
+showToast('Бот '+(state.chats[uid].botEnabled?'включён':'выключен')+' для '+uid,'success');
 }
 function clearSingleChat(uid){
 if(!state.chats[uid]||!confirm('Очистить историю чата с '+uid+'?'))return;
@@ -718,35 +706,12 @@ else h+='<div class="chat-msg system">'+esc(msg.text)+'</div>';
 });
 c.innerHTML=h;c.scrollTop=c.scrollHeight;
 }
-
-// ===== НОВАЯ ФУНКЦИЯ: СБРОС БОТА ДЛЯ НОВОГО ЗАКАЗА =====
-function resetClientBot(){
-if(!state.adminChatWith)return;
-const chat=state.chats[state.adminChatWith];
-if(!chat)return;
-chat.botStep='greet';
-chat.waitingForOperator=false;
-chat.selectedGirl=null;
-chat.botEnabled=true;
-saveState();
-addBotMessage(state.adminChatWith,'🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
-renderAdminChatMessages();
-showToast('Бот сброшен для нового заказа','success');
-}
-
 function sendAdminReply(){
 const inp=document.getElementById('adminChatInput'),text=inp.value.trim();
 if(!text||!state.adminChatWith)return;
 const uid=state.adminChatWith,ch=state.chats[uid];if(!ch)return;
-
 ch.messages.push({type:'bot',text:'[Оператор] '+text,time:Date.now()});
-
-// ✅ АВТОМАТИЧЕСКИЙ СБРОС БОТА ПОСЛЕ ОТВЕТА ОПЕРАТОРА
 ch.waitingForOperator=false;
-ch.botStep='greet';      // Возвращаем бота в начало диалога
-ch.selectedGirl=null;    // Очищаем предыдущий выбор
-ch.botEnabled=true;      // Включаем бота для следующего клиента
-
 saveState();inp.value='';renderAdminChatMessages();renderAdminChats();renderChat();
 }
 function closeAdminChat(){
@@ -764,7 +729,6 @@ if(activeTab&&activeTab.textContent.includes('Чаты'))renderAdminChats();
 },3000);
 }
 function stopChatRefresh(){if(state.chatRefreshInterval){clearInterval(state.chatRefreshInterval);state.chatRefreshInterval=null}}
-
 function initChat(){
 if(!state.currentUser)return;const uid=state.currentUser.username;
 if(!state.chats[uid]){state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null};saveState();
@@ -780,27 +744,14 @@ const uid=state.currentUser.username;if(!state.chats[uid])initChat();
 state.chats[uid].selectedGirl=girl;state.chats[uid].botStep='order';state.chats[uid].botEnabled=true;saveState();
 addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Вы выбрали:');
 addBotMessage(uid,'',{type:'profile',girl});
-addBotMessage(uid,'💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:',{type:'services',girl});
+addBotMessage(uid,'💰 Оплата девушке в руки
+Нажмите на выбранную услугу:',{type:'services',girl});
 }
-
 function processBotMessage(uid,text){
 const chat=state.chats[uid];if(!chat)return;
 const botOn=chat.botEnabled!==undefined?chat.botEnabled:true;
 if(!botOn){chat.waitingForOperator=true;saveState();return}
-
 const lower=text.toLowerCase();
-
-// 🔍 РАСПОЗНАВАНИЕ НОВОГО ЗАКАЗА
-const resetKeywords=['новый заказ','еще раз','опять','хочу еще','снова','заново','reset','сброс','еще хочу','хочу заказать'];
-if(resetKeywords.some(kw=>lower.includes(kw))){
-chat.botStep='greet';
-chat.waitingForOperator=false;
-chat.selectedGirl=null;
-saveState();
-addBotMessage(uid,'🔄 Начинаем новый заказ! Напишите ваш город:');
-return;
-}
-
 if(chat.botStep==='greet'||chat.botStep==='asking_city'){
 let fc=CITIES.find(c=>lower.includes(c.toLowerCase()));
 if(!fc){addBotMessage(uid,'Уточните ваш город (Луганск, Стаханов или Первомайск).');chat.botStep='asking_city';saveState();return}
@@ -814,7 +765,8 @@ let fg=state.girls.find(g=>lower.includes(g.name.toLowerCase()));
 if(!fg){addBotMessage(uid,'Напишите имя девушки из списка.');return}
 chat.selectedGirl=fg;chat.botStep='girl_selected';
 addBotMessage(uid,'',{type:'profile',girl:fg});
-addBotMessage(uid,'💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:',{type:'services',girl:fg});saveState();return;
+addBotMessage(uid,'💰 Оплата девушке в руки
+Нажмите на выбранную услугу:',{type:'services',girl:fg});saveState();return;
 }
 if(chat.botStep==='girl_selected'||chat.botStep==='order'){
 let fs=null;if(chat.selectedGirl){fs=chat.selectedGirl.services.find(s=>lower.includes(s.name.toLowerCase()));if(!fs)fs=chat.selectedGirl.services.find(s=>lower.includes(s.price))}
@@ -825,14 +777,14 @@ chat.waitingForOperator=true;chat.botStep='waiting';saveState();return}
 if(chat.botStep==='waiting'){addBotMessage(uid,'Заявка в обработке, ожидайте.');return}
 addBotMessage(uid,'Напишите город для поиска анкет.');chat.botStep='greet';saveState();
 }
-
 function renderChat(){if(!state.currentUser)return;const uid=state.currentUser.username,chat=state.chats[uid];if(!chat)return;
 const c=document.getElementById('chatMessages'),ind=document.getElementById('chatIndicator');
 ind.classList.toggle('show',chat.waitingForOperator);
 let h='';chat.messages.forEach(msg=>{if(msg.type==='bot')h+='<div class="chat-msg bot">'+formatBotMessage(msg)+'</div>';else if(msg.type==='user')h+='<div class="chat-msg user">'+esc(msg.text)+'</div>';else h+='<div class="chat-msg system">'+esc(msg.text)+'</div>'});
 c.innerHTML=h;c.scrollTop=c.scrollHeight;
 }
-function formatBotMessage(msg){let h=esc(msg.text).replace(/\n/g,'<br>');if(!msg.extra)return h;
+function formatBotMessage(msg){let h=esc(msg.text).replace(/
+/g,'<br>');if(!msg.extra)return h;
 if(msg.extra.type==='profile'||msg.extra.type==='order_greeting'){if(msg.extra.type==='order_greeting')h='';const g=msg.extra.girl;const mainPhoto=(g.photos&&g.photos[0])||'';const ih=mainPhoto?'<img class="msg-profile-img" src="'+mainPhoto+'">':'<div class="msg-profile-img-placeholder">👩</div>';
 h+='<div class="msg-profile">'+ih+'<div class="msg-profile-info"><h4>'+g.name+' • '+g.city+'</h4><div class="price">'+g.services.map(s=>s.name+': '+s.price+'₴').join(', ')+'</div><div class="pay-note">💰 Оплата девушке в руки</div></div></div>'}
 if(msg.extra.type==='services'){const g=msg.extra.girl;h+='<div class="msg-services">'+g.services.map(s=>'<button class="msg-service-btn" onclick="selectService(\''+g.name+'\',\''+s.name+'\',\''+s.price+'\')">'+s.name+' — '+s.price+'₴</button>').join('')+'</div>'}
@@ -840,7 +792,6 @@ if(msg.extra.type==='girls_list'){h+='<div class="msg-services">'+msg.extra.girl
 return h}
 function selectService(gn,sn,sp){if(!state.currentUser)return;const uid=state.currentUser.username;addUserMessage(uid,gn+' — '+sn+': '+sp+'₴');processBotMessage(uid,sn)}
 function selectGirlByName(n){if(!state.currentUser)return;const uid=state.currentUser.username;addUserMessage(uid,n);processBotMessage(uid,n)}
-
 function renderCatalogFilters(){const c=document.getElementById('catalogFilters');let h='<button class="filter-btn '+(state.currentCityFilter==='all'?'active':'')+'" onclick="filterCity(\'all\')">Все</button>';CITIES.forEach(city=>{h+='<button class="filter-btn '+(state.currentCityFilter===city?'active':'')+'" onclick="filterCity(\''+city+'\')">'+city+'</button>'});c.innerHTML=h}
 function filterCity(city){state.currentCityFilter=city;renderCatalogFilters();renderGirls()}
 function getFilteredGirls(){return state.currentCityFilter==='all'?state.girls:state.girls.filter(g=>g.city===state.currentCityFilter)}
@@ -854,10 +805,8 @@ function selectCity(city){closeCitiesModal();state.currentCityFilter=city;render
 function closeCitiesModal(){document.getElementById('citiesModal').classList.remove('show')}
 function openPrivacyPolicy(){document.getElementById('privacyModal').classList.add('show')}
 function closePrivacyPolicy(){document.getElementById('privacyModal').classList.remove('show')}
-
 function esc(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
 function showToast(msg,type){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},3000)}
-
 init();
 </script>
 </body>
