@@ -6,9 +6,9 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
-
 app.set('trust proxy', 1);
 
+// Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -17,10 +17,13 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// CORS и JSON парсер
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Подключение к MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -31,6 +34,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   process.exit(1);
 });
 
+// === МОДЕЛИ ===
 const girlSchema = new mongoose.Schema({
   name: { type: String, required: true },
   city: { type: String, required: true },
@@ -81,12 +85,19 @@ const User = mongoose.model('User', userSchema);
 const Chat = mongoose.model('Chat', chatSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 
+// Инициализация данных
 async function initDefaults() {
   if (!(await User.findOne({ username: 'admin' }))) {
     await User.create({ username: 'admin', password: 'admin123', role: 'admin' });
   }
   if (!(await Settings.findOne())) {
-    await Settings.create({ mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
+    await Settings.create({ 
+      mainTitle: 'Анкеты девушек', 
+      mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', 
+      title: 'BABYGIRL_LNR', 
+      phone: '', 
+      globalBotEnabled: true 
+    });
   }
   if ((await Girl.countDocuments()) === 0) {
     await Girl.insertMany([
@@ -98,7 +109,9 @@ async function initDefaults() {
 }
 initDefaults();
 
-// Settings API
+// === API ROUTES ===
+
+// Настройки
 app.get('/api/settings', async (req, res) => {
   try {
     let s = await Settings.findOne();
@@ -121,10 +134,12 @@ app.put('/api/settings', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Анкеты
 app.get('/api/girls', async (req, res) => {
   try { res.json(await Girl.find().sort({ createdAt: -1 })); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Авторизация
 app.post('/api/auth', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -146,7 +161,7 @@ app.post('/api/register', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// ===== КЛЮЧЕВОЙ ENDPOINT ДЛЯ ОТПРАВКИ СООБЩЕНИЙ =====
+// === ЧАТ КЛИЕНТА ===
 app.post('/api/chat/send', async (req, res) => {
   try {
     const { username, text } = req.body;
@@ -213,16 +228,28 @@ app.get('/api/chat/:username', async (req, res) => {
   try { const c = await Chat.findOne({ userId: req.params.username }); res.json({ messages: c?.messages || [] }); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// === ЧАТ АДМИНА ===
 app.get('/api/admin/chats', async (req, res) => {
   try { res.json(await Chat.find().sort({ lastActivity: -1 })); } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ОТВЕТА ОПЕРАТОРА
 app.post('/api/admin/chat/reply', async (req, res) => {
   try {
+    console.log('📩 Received reply for user:', req.body.userId);
     const { userId, text } = req.body;
-    const chat = await Chat.findOne({ userId });
-    if (!chat) return res.status(404).json({ error: 'Chat not found' });
     
+    if (!userId || !text) {
+      return res.status(400).json({ error: 'userId and text required' });
+    }
+    
+    const chat = await Chat.findOne({ userId });
+    if (!chat) {
+      console.log('❌ Chat not found for user:', userId);
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+    
+    // Удаляем статус "В обработке" если он последний
     if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].extra?.type === 'processing') {
       chat.messages.pop();
     }
@@ -232,9 +259,14 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     chat.botStep = 'greet';
     chat.selectedGirl = null;
     chat.botEnabled = true;
+    
     await chat.save();
+    console.log('✅ Reply sent successfully');
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  } catch (e) { 
+    console.error('❌ Reply error:', e);
+    res.status(500).json({ error: 'Server error' }); 
+  }
 });
 
 app.put('/api/admin/chat/:userId/clear', async (req, res) => {
@@ -277,6 +309,7 @@ app.post('/api/admin/girls', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Раздача фронтенда
 app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
 const PORT = process.env.PORT || 3000;
