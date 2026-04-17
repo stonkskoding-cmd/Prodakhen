@@ -261,21 +261,172 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 </main>
 <footer class="footer"><div class="warning">⚠️ Данный сайт содержит материалы 18+. Доступ разрешён только лицам старше 18 лет.</div><div class="info">BABYGIRL_LNR — сервис знакомств. Все услуги предоставляются по взаимному согласию. Оплата производится напрямую девушке при встрече. Администрация не несёт ответственности за действия пользователей.</div></footer>
 </div>
-<div class="modal-overlay" id="adminChatModal"><div class="modal admin-chat-modal"><button class="modal-close" onclick="closeAdminChat()">✕</button><div class="modal-header"><h2 id="adminChatTitle">Чат</h2></div><div class="admin-chat-messages" id="adminChatMessages"></div><div class="admin-chat-input-wrap"><input type="text" class="chat-input" id="adminChatInput" placeholder="Ответить..." onkeypress="if(event.key==='Enter')sendAdminReply()"><button class="chat-send" onclick="sendAdminReply()">➤</button></div><div style="padding:0 20px 15px;display:flex;gap:8px"><button class="admin-btn danger" onclick="clearChatHistory()" style="flex:1">🗑️ Очистить</button><button class="admin-btn success" onclick="resetClientBot()" style="flex:1">✅ Завершить</button><button class="admin-btn secondary" onclick="closeAdminChat()" style="flex:1">Закрыть</button></div></div></div>
+<div class="modal-overlay" id="adminChatModal"><div class="modal admin-chat-modal"><button class="modal-close" onclick="closeAdminChat()">✕</button><div class="modal-header"><h2 id="adminChatTitle">Чат</h2></div><div class="admin-chat-messages" id="adminChatMessages"></div><div class="admin-chat-input-wrap"><input type="text" class="chat-input" id="adminChatInput" placeholder="Ответить..." onkeypress="if(event.key==='Enter')window.sendAdminReply()"><button class="chat-send" onclick="window.sendAdminReply()">➤</button></div><div style="padding:0 20px 15px;display:flex;gap:8px"><button class="admin-btn danger" onclick="window.clearChatHistory()" style="flex:1">🗑️ Очистить</button><button class="admin-btn success" onclick="window.resetClientBot()" style="flex:1">✅ Завершить</button><button class="admin-btn secondary" onclick="closeAdminChat()" style="flex:1">Закрыть</button></div></div></div>
 
 <script>
 const CITIES=['Луганск','Стаханов','Первомайск'];
 const DEFAULT_GIRLS=[
 {id:1,name:'Алина',city:'Луганск',photos:[],desc:'Нежная и романтичная девушка.',height:'168',weight:'52',breast:'2',age:'21',prefs:'Романтика',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
 {id:2,name:'Виктория',city:'Стаханов',photos:[],desc:'Яркая и страстная брюнетка.',height:'172',weight:'55',breast:'3',age:'23',prefs:'Танцы',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'12000'}]},
-{id:3,name:'София',city:'Первомайск',photos:[],desc:'Студентка, модельная внешность.',height:'165',weight:'48',breast:'2',age:'20',prefs:'Фото',services:[{name:'Встреча',price:'2500'},{name:'Свидание',price:'4000'},{name:'Ночь',price:'8000'}]},
-{id:4,name:'Диана',city:'Луганск',photos:[],desc:'Опытная и уверенная.',height:'170',weight:'58',breast:'3',age:'25',prefs:'Фитнес',services:[{name:'Встреча',price:'4000'},{name:'Свидание',price:'7000'},{name:'Ночь',price:'15000'}]},
-{id:5,name:'Мария',city:'Стаханов',photos:[],desc:'Рыжеволосая красавица.',height:'163',weight:'50',breast:'2',age:'22',prefs:'Кулинария',services:[{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}]},
-{id:6,name:'Анастасия',city:'Первомайск',photos:[],desc:'Спортивная блондинка.',height:'175',weight:'56',breast:'3',age:'24',prefs:'Спорт',services:[{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'13000'}]}
+{id:3,name:'София',city:'Первомайск',photos:[],desc:'Студентка, модельная внешность.',height:'165',weight:'48',breast:'2',age:'20',prefs:'Фото',services:[{name:'Встреча',price:'2500'},{name:'Свидание',price:'4000'},{name:'Ночь',price:'8000'}]}
 ];
-let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{mainTitle:'Анкеты девушек',mainSubtitle:'Выберите идеальную компанию для незабываемого вечера',title:'BABYGIRL_LNR',desc:'',phone:''},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null,chatsUpdateInterval:null,lastChatsCount:0,clientChatInterval:null};
+
+let state={
+  currentUser:null,
+  currentSection:'girls',
+  currentCityFilter:'all',
+  girls:[],
+  users:[],
+  chats:{},
+  settings:{mainTitle:'Анкеты девушек',mainSubtitle:'Выберите идеальную компанию для незабываемого вечера',title:'BABYGIRL_LNR',desc:'',phone:''},
+  adminChatWith:null,
+  adminChatInterval:null,
+  chatRefreshInterval:null,
+  chatsUpdateInterval:null,
+  clientChatInterval:null,
+  lastChatsCount:0
+};
 let tempPhotos=[null,null,null,null];
 
+// ===== ГЛОБАЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНО ЧЕРЕЗ window.) =====
+
+window.sendAdminReply = async function() {
+  const inp = document.getElementById('adminChatInput');
+  const text = inp.value.trim();
+  if (!text || !state.adminChatWith) return;
+  
+  const uid = state.adminChatWith;
+  const ch = state.chats[uid];
+  if (!ch) return;
+  
+  if (ch.messages.length > 0 && ch.messages[ch.messages.length - 1].extra?.type === 'processing') {
+    ch.messages.pop();
+  }
+  
+  ch.messages.push({ type: 'bot', text: '[Оператор] ' + text, time: Date.now() });
+  ch.waitingForOperator = false;
+  ch.botStep = 'greet';
+  ch.selectedGirl = null;
+  ch.botEnabled = true;
+  saveState();
+  
+  inp.value = '';
+  
+  try {
+    await fetch('/api/admin/chat/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: uid, text: text })
+    });
+  } catch (e) {
+    console.error('Failed to send reply:', e);
+  }
+  
+  renderAdminChatMessages();
+  renderAdminChats();
+  window.renderChat();
+};
+
+window.clearChatHistory = async function() {
+  if (!state.adminChatWith) return;
+  const uid = state.adminChatWith;
+  
+  try {
+    await fetch(`/api/admin/chat/${uid}/clear`, { method: 'PUT' });
+    
+    if (state.chats[uid]) {
+      state.chats[uid].messages = [];
+      state.chats[uid].waitingForOperator = false;
+      state.chats[uid].botStep = 'greet';
+      state.chats[uid].selectedGirl = null;
+      state.chats[uid].botEnabled = true;
+      saveState();
+    }
+  } catch (e) {
+    showToast('Ошибка при очистке', 'error');
+    return;
+  }
+  
+  renderAdminChatMessages();
+  renderAdminChats();
+  window.renderChat();
+  showToast('История чата очищена', 'success');
+};
+
+window.deleteChatCompletely = async function() {
+  if (!state.adminChatWith || !confirm('Полностью удалить чат с ' + state.adminChatWith + '?')) return;
+  
+  const uid = state.adminChatWith;
+  
+  try {
+    const res = await fetch(`/api/admin/chat/${uid}`, { method: 'DELETE' });
+    if (res.ok) {
+      delete state.chats[uid];
+      saveState();
+      closeAdminChat();
+      renderAdminChats();
+      showToast('Чат полностью удалён', 'success');
+    }
+  } catch (e) {
+    showToast('Ошибка при удалении', 'error');
+  }
+};
+
+window.resetClientBot = function() {
+  if (!state.adminChatWith) return;
+  const chat = state.chats[state.adminChatWith];
+  if (!chat) return;
+  chat.botStep = 'greet';
+  chat.waitingForOperator = false;
+  chat.selectedGirl = null;
+  chat.botEnabled = true;
+  saveState();
+  window.addBotMessage(state.adminChatWith, '🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
+  renderAdminChatMessages();
+  showToast('Бот сброшен', 'success');
+};
+
+window.deleteChat = function(uid) {
+  state.adminChatWith = uid;
+  window.deleteChatCompletely();
+};
+
+window.clearSingleChat = function(uid) {
+  state.adminChatWith = uid;
+  window.clearChatHistory();
+};
+
+window.addBotMessage = function(uid, text, extra) {
+  if (!state.chats[uid]) state.chats[uid] = { messages: [], waitingForOperator: false, botEnabled: true, botStep: 'greet', selectedGirl: null };
+  state.chats[uid].messages.push({ type: 'bot', text, extra, time: Date.now() });
+  saveState();
+  window.renderChat();
+};
+
+window.addUserMessage = function(uid, text) {
+  if (!state.chats[uid]) state.chats[uid] = { messages: [], waitingForOperator: false, botEnabled: true, botStep: 'greet', selectedGirl: null };
+  state.chats[uid].messages.push({ type: 'user', text, time: Date.now() });
+  saveState();
+  window.renderChat();
+};
+
+window.renderChat = function() {
+  if (!state.currentUser) return;
+  const uid = state.currentUser.username, chat = state.chats[uid];
+  if (!chat) return;
+  const c = document.getElementById('chatMessages'), ind = document.getElementById('chatIndicator');
+  ind.classList.toggle('show', chat.waitingForOperator);
+  let h = '';
+  chat.messages.forEach(msg => {
+    if (msg.type === 'bot') h += '<div class="chat-msg bot">' + formatBotMessage(msg) + '</div>';
+    else if (msg.type === 'user') h += '<div class="chat-msg user">' + esc(msg.text) + '</div>';
+    else h += '<div class="chat-msg system">' + esc(msg.text) + '</div>';
+  });
+  c.innerHTML = h;
+  c.scrollTop = c.scrollHeight;
+};
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
 async function init(){
   document.getElementById('ageModal').classList.add('show');
   await loadState();
@@ -285,19 +436,33 @@ async function init(){
   renderCatalogFilters();
   renderMainHeaders();
   window.addEventListener('scroll',()=>{document.getElementById('header').classList.toggle('scrolled',window.scrollY>20)});
-  const bgVideo=document.getElementById('bgVideo');
-  if(bgVideo){bgVideo.play().catch(()=>{});const playOnce=()=>{bgVideo.play().catch(()=>{})};document.addEventListener('touchstart',playOnce,{once:true});document.addEventListener('click',playOnce,{once:true});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')bgVideo.play().catch(()=>{})})}
 }
 
 async function loadState(){
-  try{const s=localStorage.getItem('bglr_state');if(s){const p=JSON.parse(s);state={...state,...p}}
-  if(!state.girls||state.girls.length===0)state.girls=[...DEFAULT_GIRLS];
-  if(!state.users||state.users.length===0)state.users=[{username:'admin',password:'admin123',role:'admin'}];
-  if(!state.chats)state.chats={};
-  }catch(e){state.girls=[...DEFAULT_GIRLS];state.users=[{username:'admin',password:'admin123',role:'admin'}];state.chats={}}
+  try{
+    const s=localStorage.getItem('bglr_state');
+    if(s){
+      const p=JSON.parse(s);
+      state={...state,...p}
+    }
+    if(!state.girls||state.girls.length===0)state.girls=[...DEFAULT_GIRLS];
+    if(!state.users||state.users.length===0)state.users=[{username:'admin',password:'admin123',role:'admin'}];
+    if(!state.chats)state.chats={};
+  }catch(e){
+    state.girls=[...DEFAULT_GIRLS];
+    state.users=[{username:'admin',password:'admin123',role:'admin'}];
+    state.chats={};
+  }
 }
 
-function saveState(){localStorage.setItem('bglr_state',JSON.stringify({currentUser:state.currentUser,girls:state.girls,users:state.users,chats:state.chats}))}
+function saveState(){
+  localStorage.setItem('bglr_state',JSON.stringify({
+    currentUser:state.currentUser,
+    girls:state.girls,
+    users:state.users,
+    chats:state.chats
+  }))
+}
 
 function confirmAge(){document.getElementById('ageModal').classList.remove('show')}
 function denyAge(){window.location.href='https://google.com'}
@@ -344,7 +509,7 @@ function editGirl(id){const g=state.girls.find(x=>x.id===id);if(!g)return;docume
 function deleteGirl(id){if(!confirm('Удалить эту анкету?'))return;state.girls=state.girls.filter(g=>g.id!==id);saveState();renderAdminGirls();renderGirls();showToast('Анкета удалена','success')}
 function renderAdminGirls(){const list=document.getElementById('adminGirlsList');if(state.girls.length===0){list.innerHTML='<div class="empty-state"><p>Нет анкет</p></div>';return}list.innerHTML=state.girls.map(g=>{const pc=(g.photos||[]).length,sc=(g.services||[]).length;return '<div class="admin-list-item"><div class="info"><h4>'+g.name+' — '+g.city+'</h4><p>📏 '+g.height+'см • ⚖️ '+g.weight+'кг • 👙 '+g.breast+' • 🎂 '+g.age+' лет • 📷 '+pc+' • 📋 '+sc+'</p></div><div class="actions"><button class="edit-btn" onclick="editGirl('+g.id+')">✏️</button><button class="delete-btn" onclick="deleteGirl('+g.id+')">🗑️</button></div></div>'}).join('')}
 
-// ===== SERVER SETTINGS API =====
+// ===== API НАСТРОЕК =====
 async function loadSiteSettings(){
   try{
     const res=await fetch('/api/settings');
@@ -390,7 +555,7 @@ function renderMainHeaders(){
 
 function updatePhoneDisplay(){const el=document.getElementById('headerPhone');if(state.settings.phone){el.classList.remove('hidden');el.textContent='📞 '+state.settings.phone;el.href='tel:'+state.settings.phone.replace(/\s/g,'')}else{el.classList.add('hidden')}}
 
-// ✅ ОБНОВЛЕНИЕ СПИСКА ЧАТОВ КАЖДЫЕ 2 СЕКУНДЫ
+// ===== ОБНОВЛЕНИЕ ЧАТОВ (АДМИН) =====
 function startChatsUpdate(){
   if(state.chatsUpdateInterval)clearInterval(state.chatsUpdateInterval);
   state.chatsUpdateInterval=setInterval(async ()=>{
@@ -419,7 +584,7 @@ function startChatsUpdate(){
         }
       }catch(e){}
     }
-  },2000);
+  }, 5000); // Увеличено до 5 секунд
 }
 
 function stopChatsUpdate(){
@@ -441,7 +606,7 @@ function updateChatsBadge(count){
 }
 
 function playNotificationSound(){
-  const audio=new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+......');
+  const audio=new Audio('audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8......');
   audio.play().catch(()=>{});
 }
 
@@ -449,7 +614,7 @@ function showNotification(text){
   showToast('🔔 '+text,'success');
 }
 
-// ✅ КЛЮЧЕВАЯ ФУНКЦИЯ: ОТПРАВКА СООБЩЕНИЙ НА СЕРВЕР
+// ===== ОТПРАВКА СООБЩЕНИЙ КЛИЕНТОМ =====
 async function sendMessage(){
   const inp=document.getElementById('chatInput'),text=inp.value.trim();
   if(!text)return;
@@ -457,14 +622,12 @@ async function sendMessage(){
   checkAuth(async ()=>{
     const uid=state.currentUser.username;
     
-    // Добавляем сообщение локально для мгновенного отображения
     if(!state.chats[uid])state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null};
     state.chats[uid].messages.push({type:'user',text,time:Date.now()});
     saveState();
-    renderChat();
+    window.renderChat();
     inp.value='';
     
-    // Отправляем на сервер
     try{
       const res=await fetch('/api/chat/send',{
         method:'POST',
@@ -482,7 +645,7 @@ async function sendMessage(){
             time:Date.now()
           });
           saveState();
-          renderChat();
+          window.renderChat();
         }
       }
     }catch(e){
@@ -492,7 +655,7 @@ async function sendMessage(){
   });
 }
 
-// ✅ ЗАГРУЗКА ИСТОРИИ ЧАТА С СЕРВЕРА
+// ===== ЗАГРУЗКА ИСТОРИИ =====
 async function initChat(){
   if(!state.currentUser)return;
   const uid=state.currentUser.username;
@@ -511,22 +674,22 @@ async function initChat(){
         };
       }else{
         state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null};
-        addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?');
-        addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.');
+        window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?');
+        window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.');
       }
     }
   }catch(e){
     if(!state.chats[uid]){
       state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null};
-      addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?');
-      addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.');
+      window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?');
+      window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.');
     }
   }
   saveState();
-  renderChat();
+  window.renderChat();
 }
 
-// ✅ АВТООБНОВЛЕНИЕ ЧАТА КЛИЕНТА
+// ===== АВТООБНОВЛЕНИЕ ЧАТА КЛИЕНТА =====
 function startClientChatUpdate(){
   if(!state.currentUser)return;
   if(state.clientChatInterval)clearInterval(state.clientChatInterval);
@@ -540,7 +703,7 @@ function startClientChatUpdate(){
         if(data.messages && data.messages.length>(state.chats[uid]?.messages.length||0)){
           state.chats[uid].messages=data.messages;
           saveState();
-          renderChat();
+          window.renderChat();
         }
       }
     }catch(e){}
@@ -549,65 +712,6 @@ function startClientChatUpdate(){
 
 function stopClientChatUpdate(){
   if(state.clientChatInterval){clearInterval(state.clientChatInterval);state.clientChatInterval=null}
-}
-
-async function clearChatHistory(){
-  if(!state.adminChatWith) return;
-  const uid=state.adminChatWith;
-  
-  try{
-    await fetch(`/api/admin/chat/${uid}/clear`,{method:'PUT'});
-    
-    if(state.chats[uid]){
-      state.chats[uid].messages=[];
-      state.chats[uid].waitingForOperator=false;
-      state.chats[uid].botStep='greet';
-      state.chats[uid].selectedGirl=null;
-      state.chats[uid].botEnabled=true;
-      saveState();
-    }
-  }catch(e){
-    showToast('Ошибка при очистке','error');
-    return;
-  }
-  
-  renderAdminChatMessages();
-  renderAdminChats();
-  renderChat();
-  showToast('История чата очищена','success');
-}
-
-async function deleteChatCompletely(){
-  if(!state.adminChatWith||!confirm('Полностью удалить чат с '+state.adminChatWith+'? Это действие нельзя отменить!'))return;
-  
-  const uid=state.adminChatWith;
-  
-  try{
-    const res=await fetch(`/api/admin/chat/${uid}`,{method:'DELETE'});
-    if(res.ok){
-      delete state.chats[uid];
-      saveState();
-      closeAdminChat();
-      renderAdminChats();
-      showToast('Чат полностью удалён','success');
-    }
-  }catch(e){
-    showToast('Ошибка при удалении','error');
-  }
-}
-
-function resetClientBot(){
-  if(!state.adminChatWith)return;
-  const chat=state.chats[state.adminChatWith];
-  if(!chat)return;
-  chat.botStep='greet';
-  chat.waitingForOperator=false;
-  chat.selectedGirl=null;
-  chat.botEnabled=true;
-  saveState();
-  addBotMessage(state.adminChatWith,'🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
-  renderAdminChatMessages();
-  showToast('Бот сброшен','success');
 }
 
 function renderAdminChats(){
@@ -632,16 +736,6 @@ function toggleChatBot(uid){
   saveState();
   renderAdminChats();
   showToast('Бот '+(state.chats[uid].botEnabled?'включён':'выключен')+' для '+uid,'success');
-}
-
-function clearSingleChat(uid){
-  state.adminChatWith = uid;
-  clearChatHistory();
-}
-
-function deleteChat(uid){
-  state.adminChatWith = uid;
-  deleteChatCompletely();
 }
 
 function openAdminChatWith(uid){
@@ -691,13 +785,6 @@ function stopChatRefresh(){
   if(state.chatRefreshInterval){clearInterval(state.chatRefreshInterval);state.chatRefreshInterval=null}
 }
 
-function addBotMessage(uid,text,extra){
-  if(!state.chats[uid])return;
-  state.chats[uid].messages.push({type:'bot',text,extra,time:Date.now()});
-  saveState();
-  renderChat();
-}
-
 function sendBotOrderMessage(girl){
   const uid=state.currentUser.username;
   if(!state.chats[uid])initChat();
@@ -705,25 +792,9 @@ function sendBotOrderMessage(girl){
   state.chats[uid].botStep='order';
   state.chats[uid].botEnabled=true;
   saveState();
-  addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Вы выбрали:');
-  addBotMessage(uid,'',{type:'profile',girl});
-  addBotMessage(uid,'💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:',{type:'services',girl});
-}
-
-function renderChat(){
-  if(!state.currentUser)return;
-  const uid=state.currentUser.username,chat=state.chats[uid];
-  if(!chat)return;
-  const c=document.getElementById('chatMessages'),ind=document.getElementById('chatIndicator');
-  ind.classList.toggle('show',chat.waitingForOperator);
-  let h='';
-  chat.messages.forEach(msg=>{
-    if(msg.type==='bot')h+='<div class="chat-msg bot">'+formatBotMessage(msg)+'</div>';
-    else if(msg.type==='user')h+='<div class="chat-msg user">'+esc(msg.text)+'</div>';
-    else h+='<div class="chat-msg system">'+esc(msg.text)+'</div>';
-  });
-  c.innerHTML=h;
-  c.scrollTop=c.scrollHeight;
+  window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Вы выбрали:');
+  window.addBotMessage(uid,'',{type:'profile',girl});
+  window.addBotMessage(uid,'💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:',{type:'services',girl});
 }
 
 function formatBotMessage(msg){
@@ -749,13 +820,12 @@ function formatBotMessage(msg){
 function selectService(gn,sn,sp){
   if(!state.currentUser)return;
   const uid=state.currentUser.username;
-  // Отправляем выбор услуги на сервер
   fetch('/api/chat/send',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({username:uid,text:gn+' — '+sn+': '+sp+'₽'})
   });
-  addUserMessage(uid,gn+' — '+sn+': '+sp+'₽');
+  window.addUserMessage(uid,gn+' — '+sn+': '+sp+'₽');
 }
 
 function selectGirlByName(n){
@@ -766,7 +836,7 @@ function selectGirlByName(n){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({username:uid,text:n})
   });
-  addUserMessage(uid,n);
+  window.addUserMessage(uid,n);
 }
 
 function renderCatalogFilters(){
