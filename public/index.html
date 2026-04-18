@@ -287,8 +287,7 @@ lastChatsCount:0
 };
 let tempPhotos=[null,null,null,null];
 
-// ===== ГЛОБАЛЬНЫЕ ФУНКЦИИ (ОБЯЗАТЕЛЬНО ЧЕРЕЗ window.) =====
-
+// ===== ГЛОБАЛЬНЫЕ ФУНКЦИИ =====
 window.sendAdminReply = async function() {
   const inp = document.getElementById('adminChatInput');
   const text = inp.value.trim();
@@ -296,26 +295,12 @@ window.sendAdminReply = async function() {
   const uid = state.adminChatWith;
   const ch = state.chats[uid];
   if (!ch) return;
-  if (ch.messages.length > 0 && ch.messages[ch.messages.length - 1].extra?.type === 'processing') {
-    ch.messages.pop();
-  }
+  if (ch.messages.length > 0 && ch.messages[ch.messages.length - 1].extra?.type === 'processing') { ch.messages.pop(); }
   ch.messages.push({ type: 'bot', text: '[Оператор] ' + text, time: Date.now() });
-  ch.waitingForOperator = false;
-  ch.botStep = 'greet';
-  ch.selectedGirl = null;
-  ch.botEnabled = true;
-  saveState();
-  inp.value = '';
-  try {
-    await fetch('/api/admin/chat/reply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: uid, text: text })
-    });
-  } catch (e) { console.error('Failed to send reply:', e); }
-  renderAdminChatMessages();
-  renderAdminChats();
-  window.renderChat();
+  ch.waitingForOperator = false; ch.botStep = 'greet'; ch.selectedGirl = null; ch.botEnabled = true;
+  saveState(); inp.value = '';
+  try { await fetch('/api/admin/chat/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, text: text }) }); } catch (e) { console.error('Failed to send reply:', e); }
+  renderAdminChatMessages(); renderAdminChats(); window.renderChat();
 };
 
 window.clearChatHistory = async function() {
@@ -323,19 +308,9 @@ window.clearChatHistory = async function() {
   const uid = state.adminChatWith;
   try {
     await fetch(`/api/admin/chat/${uid}/clear`, { method: 'PUT' });
-    if (state.chats[uid]) {
-      state.chats[uid].messages = [];
-      state.chats[uid].waitingForOperator = false;
-      state.chats[uid].botStep = 'greet';
-      state.chats[uid].selectedGirl = null;
-      state.chats[uid].botEnabled = true;
-      saveState();
-    }
+    if (state.chats[uid]) { state.chats[uid].messages = []; state.chats[uid].waitingForOperator = false; state.chats[uid].botStep = 'greet'; state.chats[uid].selectedGirl = null; state.chats[uid].botEnabled = true; saveState(); }
   } catch (e) { showToast('Ошибка при очистке', 'error'); return; }
-  renderAdminChatMessages();
-  renderAdminChats();
-  window.renderChat();
-  showToast('История чата очищена', 'success');
+  renderAdminChatMessages(); renderAdminChats(); window.renderChat(); showToast('История чата очищена', 'success');
 };
 
 window.deleteChatCompletely = async function() {
@@ -343,13 +318,7 @@ window.deleteChatCompletely = async function() {
   const uid = state.adminChatWith;
   try {
     const res = await fetch(`/api/admin/chat/${uid}`, { method: 'DELETE' });
-    if (res.ok) {
-      delete state.chats[uid];
-      saveState();
-      closeAdminChat();
-      renderAdminChats();
-      showToast('Чат полностью удалён', 'success');
-    }
+    if (res.ok) { delete state.chats[uid]; saveState(); closeAdminChat(); renderAdminChats(); showToast('Чат полностью удалён', 'success'); }
   } catch (e) { showToast('Ошибка при удалении', 'error'); }
 };
 
@@ -357,14 +326,9 @@ window.resetClientBot = function() {
   if (!state.adminChatWith) return;
   const chat = state.chats[state.adminChatWith];
   if (!chat) return;
-  chat.botStep = 'greet';
-  chat.waitingForOperator = false;
-  chat.selectedGirl = null;
-  chat.botEnabled = true;
-  saveState();
+  chat.botStep = 'greet'; chat.waitingForOperator = false; chat.selectedGirl = null; chat.botEnabled = true; saveState();
   window.addBotMessage(state.adminChatWith, '🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
-  renderAdminChatMessages();
-  showToast('Бот сброшен', 'success');
+  renderAdminChatMessages(); showToast('Бот сброшен', 'success');
 };
 
 window.deleteChat = function(uid) { state.adminChatWith = uid; window.deleteChatCompletely(); };
@@ -392,8 +356,7 @@ window.renderChat = function() {
     else if (msg.type === 'user') h += '<div class="chat-msg user">' + esc(msg.text) + '</div>';
     else h += '<div class="chat-msg system">' + esc(msg.text) + '</div>';
   });
-  c.innerHTML = h;
-  c.scrollTop = c.scrollHeight;
+  c.innerHTML = h; c.scrollTop = c.scrollHeight;
 };
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
@@ -402,9 +365,7 @@ async function init(){
   await loadState();
   if(state.currentUser) updateUIForLoggedUser();
   await loadSiteSettings();
-  renderGirls();
-  renderCatalogFilters();
-  renderMainHeaders();
+  renderGirls(); renderCatalogFilters(); renderMainHeaders();
   window.addEventListener('scroll',()=>{document.getElementById('header').classList.toggle('scrolled',window.scrollY>20)});
 }
 
@@ -416,9 +377,7 @@ async function loadState(){
     if(!state.users||state.users.length===0)state.users=[{username:'admin',password:'admin123',role:'admin'}];
     if(!state.chats)state.chats={};
   }catch(e){
-    state.girls=[...DEFAULT_GIRLS];
-    state.users=[{username:'admin',password:'admin123',role:'admin'}];
-    state.chats={};
+    state.girls=[...DEFAULT_GIRLS]; state.users=[{username:'admin',password:'admin123',role:'admin'}]; state.chats={};
   }
 }
 
@@ -431,7 +390,7 @@ function switchAuthTab(tab){document.querySelectorAll('.auth-tab').forEach((t,i)
 function openAuthModal(){document.getElementById('authModal').classList.add('show')}
 function closeAuthModal(){document.getElementById('authModal').classList.remove('show')}
 function login(){const nick=document.getElementById('loginNick').value.trim(),pass=document.getElementById('loginPass').value.trim();if(!nick||!pass)return showToast('Заполните все поля','error');const user=state.users.find(u=>u.username===nick&&u.password===pass);if(!user)return showToast('Неверный логин или пароль','error');state.currentUser={username:user.username,role:user.role};saveState();closeAuthModal();updateUIForLoggedUser();showToast('Добро пожаловать, '+nick+'!','success')}
-function register(){const nick=document.getElementById('regNick').value.trim(),pass=document.getElementById('regPass').value.trim();if(!nick||!pass)return showToast('Заполните все поля','error');if(nick.length<3)return showToast('Никнейм минимум 3 символа','error');if(pass.length<4)return showToast('Пароль минимум 4 символа','error');if(state.users.find(u=>u.username===nick))return showToast('Никнейм занят','error');state.users.push({username:nick,password:pass,role:'client'});state.currentUser={username:nick,role:'client'};saveState();closeAuthModal();updateUIForLoggedUser();showToast('Регистрация успешна!','success')}
+function register(){const nick=document.getElementById('regNick').value.trim(),pass=document.getElementById('regPass').value.trim();if(!nick||!pass)return showToast('Заполните все поля','error');if(nick.length<3)return showToast('Никнейм минимум 3 символа','error');if(pass.length<6)return showToast('Пароль минимум 6 символов','error');if(state.users.find(u=>u.username===nick))return showToast('Никнейм занят','error');state.users.push({username:nick,password:pass,role:'client'});state.currentUser={username:nick,role:'client'};saveState();closeAuthModal();updateUIForLoggedUser();showToast('Регистрация успешна!','success')}
 function logout(){state.currentUser=null;saveState();closeProfileDropdown();document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.querySelector('[data-section="girls"]').classList.add('active');state.currentSection='girls';document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-girls').classList.add('active');document.getElementById('pdName').textContent='Профиль';document.getElementById('adminBtn').style.display='none';showToast('Вы вышли','success')}
 function updateUIForLoggedUser(){document.getElementById('pdName').textContent='👤 '+state.currentUser.username;document.getElementById('adminBtn').style.display=state.currentUser.role==='admin'?'flex':'none'}
 function checkAuth(cb){if(!state.currentUser){openAuthModal();return false}cb();return true}
@@ -440,7 +399,6 @@ function closeProfileDropdown(){document.getElementById('profileDropdown').class
 document.addEventListener('click',e=>{const pd=document.getElementById('profileDropdown');if(pd.classList.contains('show')&&!pd.contains(e.target)&&!e.target.closest('.header-profile-btn')){pd.classList.remove('show')}})
 function openSupport(){closeProfileDropdown();navigateTo('chat');if(state.currentUser&&!state.chats[state.currentUser.username])initChat()}
 function openAdmin(){if(state.currentUser.role!=='admin')return;closeProfileDropdown();navigateTo('admin');renderAdminGirls();renderAdminChats();startChatRefresh();startChatsUpdate()}
-
 function navigateTo(section){
   if((section==='chat'||section==='admin')&&!state.currentUser){openAuthModal();return}
   if(section==='chat'&&state.currentUser){ if(!state.chats[state.currentUser.username])initChat(); startClientChatUpdate(); }
@@ -449,12 +407,10 @@ function navigateTo(section){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const navBtn=document.querySelector('[data-section="'+section+'"]');
   if(navBtn)navBtn.classList.add('active');
-  state.currentSection=section;
-  window.scrollTo({top:0,behavior:'smooth'});
+  state.currentSection=section; window.scrollTo({top:0,behavior:'smooth'});
   if(section!=='admin'){stopChatRefresh();stopChatsUpdate()}
   if(section!=='chat')stopClientChatUpdate();
 }
-
 function switchAdminTab(tabId){document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));document.querySelector('.admin-tab[onclick*="'+tabId+'"]').classList.add('active');document.getElementById(tabId).classList.add('active');if(tabId==='chats-tab'){renderAdminChats();startChatRefresh();startChatsUpdate()}else if(tabId==='girls-tab')renderAdminGirls()}
 function uploadPhoto(idx){document.querySelectorAll('#photoUploadArea .photo-slot input')[idx].click()}
 function handlePhoto(idx,input){const f=input.files[0];if(!f)return;const reader=new FileReader();reader.onload=e=>{tempPhotos[idx]=e.target.result;renderPhotoSlots()};reader.readAsDataURL(f)}
@@ -469,49 +425,9 @@ function deleteGirl(id){if(!confirm('Удалить эту анкету?'))retur
 function renderAdminGirls(){const list=document.getElementById('adminGirlsList');if(state.girls.length===0){list.innerHTML='<div class="empty-state"><p>Нет анкет</p></div>';return}list.innerHTML=state.girls.map(g=>{const pc=(g.photos||[]).length,sc=(g.services||[]).length;return '<div class="admin-list-item"><div class="info"><h4>'+g.name+' — '+g.city+'</h4><p>📏 '+g.height+'см • ⚖️ '+g.weight+'кг • 👙 '+g.breast+' • 🎂 '+g.age+' лет • 📷 '+pc+' • 📋 '+sc+'</p></div><div class="actions"><button class="edit-btn" onclick="editGirl('+g.id+')">✏️</button><button class="delete-btn" onclick="deleteGirl('+g.id+')">🗑️</button></div></div>'}).join('')}
 
 // ===== API НАСТРОЕК =====
-async function loadSiteSettings(){
-  try{
-    const res=await fetch('/api/settings');
-    if(res.ok){
-      const s=await res.json();
-      state.settings=s;
-      document.getElementById('admMainTitle').value=s.mainTitle||'';
-      document.getElementById('admMainSubtitle').value=s.mainSubtitle||'';
-      document.getElementById('admSiteTitle').value=s.title||'';
-      document.getElementById('admSiteDesc').value=s.desc||'';
-      document.getElementById('admSitePhone').value=s.phone||'';
-      updatePhoneDisplay();
-      renderMainHeaders();
-    }
-  }catch(e){console.error('Failed to load settings',e)}
-}
-
-async function saveSiteSettings(){
-  const settings={
-    mainTitle:document.getElementById('admMainTitle').value,
-    mainSubtitle:document.getElementById('admMainSubtitle').value,
-    title:document.getElementById('admSiteTitle').value,
-    desc:document.getElementById('admSiteDesc').value,
-    phone:document.getElementById('admSitePhone').value
-  };
-  try{
-    const res=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)});
-    if(res.ok){
-      state.settings=settings;
-      renderMainHeaders();
-      document.title=settings.title;
-      showToast('Настройки сохранены и применены для всех!','success');
-    }else{showToast('Ошибка сохранения','error')}
-  }catch(e){showToast('Ошибка соединения','error')}
-}
-
-function renderMainHeaders(){
-  const t=document.getElementById('mainHeaderTitle');
-  const s=document.getElementById('mainHeaderSubtitle');
-  if(t)t.textContent=state.settings.mainTitle;
-  if(s)s.textContent=state.settings.mainSubtitle;
-}
-
+async function loadSiteSettings(){ try{ const res=await fetch('/api/settings'); if(res.ok){ const s=await res.json(); state.settings=s; document.getElementById('admMainTitle').value=s.mainTitle||''; document.getElementById('admMainSubtitle').value=s.mainSubtitle||''; document.getElementById('admSiteTitle').value=s.title||''; document.getElementById('admSiteDesc').value=s.desc||''; document.getElementById('admSitePhone').value=s.phone||''; updatePhoneDisplay(); renderMainHeaders(); } }catch(e){console.error('Failed to load settings',e)} }
+async function saveSiteSettings(){ const settings={ mainTitle:document.getElementById('admMainTitle').value, mainSubtitle:document.getElementById('admMainSubtitle').value, title:document.getElementById('admSiteTitle').value, desc:document.getElementById('admSiteDesc').value, phone:document.getElementById('admSitePhone').value }; try{ const res=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)}); if(res.ok){ state.settings=settings; renderMainHeaders(); document.title=settings.title; showToast('Настройки сохранены и применены для всех!','success'); }else{showToast('Ошибка сохранения','error')} }catch(e){showToast('Ошибка соединения','error')} }
+function renderMainHeaders(){ const t=document.getElementById('mainHeaderTitle'); const s=document.getElementById('mainHeaderSubtitle'); if(t)t.textContent=state.settings.mainTitle; if(s)s.textContent=state.settings.mainSubtitle; }
 function updatePhoneDisplay(){const el=document.getElementById('headerPhone');if(state.settings.phone){el.classList.remove('hidden');el.textContent='📞 '+state.settings.phone;el.href='tel:'+state.settings.phone.replace(/\s/g,'')}else{el.classList.add('hidden')}}
 
 // ===== ОБНОВЛЕНИЕ ЧАТОВ (АДМИН) =====
@@ -524,19 +440,9 @@ function startChatsUpdate(){
         if(res.ok){
           const chats=await res.json();
           const newCount=chats.filter(c=>c.waitingForOperator || (c.messages.length>0 && c.messages[c.messages.length-1].type==='user')).length;
-          chats.forEach(chat=>{
-            const oldChat=state.chats[chat.userId];
-            state.chats[chat.userId]=chat;
-            if(oldChat && chat.messages.length > oldChat.messages.length){
-              playNotificationSound();
-              showNotification('Новое сообщение от '+chat.userId);
-            }
-          });
-          updateChatsBadge(newCount);
-          renderAdminChats();
-          if(state.adminChatWith && state.chats[state.adminChatWith]){
-            renderAdminChatMessages();
-          }
+          chats.forEach(chat=>{ const oldChat=state.chats[chat.userId]; state.chats[chat.userId]=chat; if(oldChat && chat.messages.length > oldChat.messages.length){ playNotificationSound(); showNotification('Новое сообщение от '+chat.userId); } });
+          updateChatsBadge(newCount); renderAdminChats();
+          if(state.adminChatWith && state.chats[state.adminChatWith]){ renderAdminChatMessages(); }
         }
       }catch(e){}
     }
@@ -544,12 +450,11 @@ function startChatsUpdate(){
 }
 function stopChatsUpdate(){ if(state.chatsUpdateInterval){clearInterval(state.chatsUpdateInterval);state.chatsUpdateInterval=null} }
 function updateChatsBadge(count){
-  const badge=document.getElementById('chatsBadge');
-  const profileBadge=document.getElementById('notificationBadge');
+  const badge=document.getElementById('chatsBadge'); const profileBadge=document.getElementById('notificationBadge');
   if(count>0){ badge.textContent=count; badge.style.display='inline'; profileBadge.textContent=count; profileBadge.style.display='inline'; }else{ badge.style.display='none'; profileBadge.style.display='none'; }
 }
 function playNotificationSound(){
-  const audio=new Audio('audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hG......');
+  const audio=new Audio('audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unE......');
   audio.play().catch(()=>{});
 }
 function showNotification(text){ showToast('🔔 '+text,'success'); }
@@ -562,18 +467,12 @@ async function sendMessage(){
     const uid=state.currentUser.username;
     if(!state.chats[uid])state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null};
     state.chats[uid].messages.push({type:'user',text,time:Date.now()});
-    saveState();
-    window.renderChat();
-    inp.value='';
+    saveState(); window.renderChat(); inp.value='';
     try{
       const res=await fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) });
       if(res.ok){
         const data=await res.json();
-        if(data.reply){
-          state.chats[uid].messages.push({ type:'bot', text:data.reply.text, extra:data.reply, time:Date.now() });
-          saveState();
-          window.renderChat();
-        }
+        if(data.reply){ state.chats[uid].messages.push({ type:'bot', text:data.reply.text, extra:data.reply, time:Date.now() }); saveState(); window.renderChat(); }
       }
     }catch(e){ console.error('Failed to send message:',e); showToast('Ошибка отправки','error'); }
   });
@@ -602,8 +501,7 @@ async function initChat(){
       window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.');
     }
   }
-  saveState();
-  window.renderChat();
+  saveState(); window.renderChat();
 }
 
 // ===== АВТООБНОВЛЕНИЕ ЧАТА КЛИЕНТА =====
@@ -617,9 +515,7 @@ function startClientChatUpdate(){
       if(res.ok){
         const data=await res.json();
         if(data.messages && data.messages.length>(state.chats[uid]?.messages.length||0)){
-          state.chats[uid].messages=data.messages;
-          saveState();
-          window.renderChat();
+          state.chats[uid].messages=data.messages; saveState(); window.renderChat();
         }
       }
     }catch(e){}
@@ -646,9 +542,7 @@ function renderAdminChats(){
 function toggleChatBot(uid){
   if(!state.chats[uid])return;
   state.chats[uid].botEnabled=!state.chats[uid].botEnabled;
-  saveState();
-  renderAdminChats();
-  showToast('Бот '+(state.chats[uid].botEnabled?'включён':'выключен')+' для '+uid,'success');
+  saveState(); renderAdminChats(); showToast('Бот '+(state.chats[uid].botEnabled?'включён':'выключен')+' для '+uid,'success');
 }
 
 window.openAdminChatWith = async function(uid){
@@ -663,44 +557,32 @@ window.openAdminChatWith = async function(uid){
 async function loadAdminChatFromServer(uid) {
   try {
     const res = await fetch(`/api/chat/${uid}`);
-    if(res.ok){
-      const data = await res.json();
-      state.chats[uid] = { messages: data.messages }; 
-      renderAdminChatMessages();
-    }
+    if(res.ok){ const data = await res.json(); state.chats[uid] = { messages: data.messages }; renderAdminChatMessages(); }
   } catch(e){}
 }
 
 function renderAdminChatMessages(){
-  const uid=state.adminChatWith;
-  if(!uid)return;
-  const ch=state.chats[uid];
-  if(!ch)return;
-  const c=document.getElementById('adminChatMessages');
-  let h='';
+  const uid=state.adminChatWith; if(!uid)return;
+  const ch=state.chats[uid]; if(!ch)return;
+  const c=document.getElementById('adminChatMessages'); let h='';
   ch.messages.forEach(msg=>{
     if(msg.type==='user')h+='<div class="chat-msg user">'+esc(msg.text)+'</div>';
     else if(msg.type==='bot')h+='<div class="chat-msg bot">'+formatBotMessage(msg)+'</div>';
     else h+='<div class="chat-msg system">'+esc(msg.text)+'</div>';
   });
-  c.innerHTML=h;
-  c.scrollTop=c.scrollHeight;
+  c.innerHTML=h; c.scrollTop=c.scrollHeight;
 }
 
 function closeAdminChat(){
   document.getElementById('adminChatModal').classList.remove('show');
   if(state.adminChatInterval)clearInterval(state.adminChatInterval);
-  state.adminChatInterval=null;
-  state.adminChatWith=null;
+  state.adminChatInterval=null; state.adminChatWith=null;
 }
 
 function startChatRefresh(){
   if(state.chatRefreshInterval)clearInterval(state.chatRefreshInterval);
   state.chatRefreshInterval=setInterval(()=>{
-    if(state.currentSection==='admin'){
-      const at=document.querySelector('.admin-tab.active');
-      if(at&&at.textContent.includes('Чаты'))renderAdminChats();
-    }
+    if(state.currentSection==='admin'){ const at=document.querySelector('.admin-tab.active'); if(at&&at.textContent.includes('Чаты'))renderAdminChats(); }
   },3000);
 }
 function stopChatRefresh(){ if(state.chatRefreshInterval){clearInterval(state.chatRefreshInterval);state.chatRefreshInterval=null} }
@@ -708,10 +590,7 @@ function stopChatRefresh(){ if(state.chatRefreshInterval){clearInterval(state.ch
 function sendBotOrderMessage(girl){
   const uid=state.currentUser.username;
   if(!state.chats[uid])initChat();
-  state.chats[uid].selectedGirl=girl;
-  state.chats[uid].botStep='order';
-  state.chats[uid].botEnabled=true;
-  saveState();
+  state.chats[uid].selectedGirl=girl; state.chats[uid].botStep='order'; state.chats[uid].botEnabled=true; saveState();
   window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Вы выбрали:');
   window.addBotMessage(uid,'',{type:'profile',girl});
   window.addBotMessage(uid,'💰 Оплата девушке в руки\n\nНажмите на выбранную услугу:',{type:'services',girl});
@@ -722,8 +601,7 @@ function formatBotMessage(msg){
   if(!msg.extra)return h;
   if(msg.extra.type==='profile'||msg.extra.type==='order_greeting'){
     if(msg.extra.type==='order_greeting')h='';
-    const g=msg.extra.girl;
-    const mp=(g.photos&&g.photos[0])||'';
+    const g=msg.extra.girl; const mp=(g.photos&&g.photos[0])||'';
     const ih=mp?'<img class="msg-profile-img" src="'+mp+'">':'<div class="msg-profile-img-placeholder">👩</div>';
     h+='<div class="msg-profile">'+ih+'<div class="msg-profile-info"><h4>'+g.name+' • '+g.city+'</h4><div class="price">'+g.services.map(s=>s.name+': '+s.price+'₽').join(', ')+'</div><div class="pay-note">💰 Оплата девушке в руки</div></div></div>';
   }
@@ -771,8 +649,7 @@ function createGirlCard(g){
 }
 
 function openProfile(id){
-  const g=state.girls.find(x=>x.id===id);
-  if(!g)return;
+  const g=state.girls.find(x=>x.id===id); if(!g)return;
   const mp=(g.photos&&g.photos[0])||'';
   const ih=mp?'<img class="profile-modal-img" src="'+mp+'" alt="'+g.name+'">':'<div class="profile-modal-img-placeholder">👩</div>';
   const sH=(g.services||[]).map(s=>'<div class="profile-service"><span class="name">'+s.name+'</span><span class="price">'+s.price+'₽</span></div>').join('');
@@ -782,10 +659,8 @@ function openProfile(id){
 function closeProfileModal(){document.getElementById('profileModal').classList.remove('show')}
 function orderGirl(id){
   checkAuth(()=>{
-    const g=state.girls.find(x=>x.id===id);
-    if(!g)return;
-    navigateTo('chat');
-    setTimeout(()=>sendBotOrderMessage(g),500);
+    const g=state.girls.find(x=>x.id===id); if(!g)return;
+    navigateTo('chat'); setTimeout(()=>sendBotOrderMessage(g),500);
   });
 }
 function openCitiesModal(){
@@ -803,10 +678,7 @@ function openPrivacyPolicy(){document.getElementById('privacyModal').classList.a
 function closePrivacyPolicy(){document.getElementById('privacyModal').classList.remove('show')}
 function esc(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
 function showToast(msg,type){
-  const t=document.createElement('div');
-  t.className='toast '+type;
-  t.textContent=msg;
-  document.body.appendChild(t);
+  const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg; document.body.appendChild(t);
   setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},3000);
 }
 
