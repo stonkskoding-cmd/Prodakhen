@@ -87,19 +87,21 @@ const Settings = mongoose.model('Settings', settingsSchema);
 
 // Инициализация данных
 async function initDefaults() {
-    // 🧹 ОЧИСТКА БАЗЫ (Включите эти строки ТОЛЬКО ОДИН РАЗ, чтобы сбросить старые данные, потом закомментируйте обратно)
-    // await User.deleteMany({});
-    // await Chat.deleteMany({});
-    // console.log('🗑️ База очищена!');
-
+    // 🧹 ОЧИСТКА БАЗЫ (раскомментируйте ТОЛЬКО ОДИН РАЗ для сброса, потом закомментируйте обратно)
+     await User.deleteMany({});
+     await Chat.deleteMany({});
+     console.log('🗑️ База очищена!');
+    
     // 1. Главный админ
     if (!(await User.findOne({ username: 'admin' }))) {
         await User.create({ username: 'admin', password: 'Admin@1562', role: 'admin' });
+        console.log('✅ Создан admin / Admin@1562');
     }
     
     // 2. Второй оператор
     if (!(await User.findOne({ username: 'operator2' }))) {
         await User.create({ username: 'operator2', password: 'Op#2024_LNR', role: 'admin' });
+        console.log('✅ Создан operator2 / Op#2024_LNR');
     }
 
     // 3. Настройки
