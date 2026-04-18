@@ -82,12 +82,12 @@ const Settings = mongoose.model('Settings', settingsSchema);
 // Инициализация данных
 async function initDefaults() {
   // 1. Главный админ
-  if (!(await User.findOne({ username: 'admin' }))) {
-    await User.create({ username: 'admin', password: 'Admin@1562', role: 'admin' });
+  if (!(await User.findOne({ username: 'admin1' }))) {
+    await User.create({ username: 'admin1', password: 'Admin@1562', role: 'admin' });
   }
   // 2. Второй оператор (как вы просили)
-  if (!(await User.findOne({ username: 'operator2' }))) {
-    await User.create({ username: 'operator2', password: 'Op#2026_LNR', role: 'admin' });
+  if (!(await User.findOne({ username: 'admin2' }))) {
+    await User.create({ username: 'admin2', password: 'Op#2026_LNR', role: 'admin' });
   }
   // 3. Настройки
   if (!(await Settings.findOne())) {
