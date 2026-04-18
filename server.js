@@ -88,9 +88,9 @@ const Settings = mongoose.model('Settings', settingsSchema);
 // Инициализация данных
 async function initDefaults() {
   // 🧹 ОЧИСТКА БАЗЫ (раскомментируйте ТОЛЬКО ОДИН РАЗ для сброса старых данных)
-  // await User.deleteMany({});
-  // await Chat.deleteMany({});
-  // console.log('🗑️ База очищена!');
+   await User.deleteMany({});
+   await Chat.deleteMany({});
+   console.log('🗑️ База очищена!');
   
   // 1. Главный админ
   if (!(await User.findOne({ username: 'admin' }))) {
