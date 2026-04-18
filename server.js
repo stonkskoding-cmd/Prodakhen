@@ -85,22 +85,21 @@ const User = mongoose.model('User', userSchema);
 const Chat = mongoose.model('Chat', chatSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 
-// Инициализация данных
 async function initDefaults() {
-    // ⚠️ ВАЖНО: Эти строки очистят старые аккаунты и создадут новые правильные
-    console.log('🗑️ Очищаю базу данных...');
+    // 🧹 ОЧИСТКА БАЗЫ - раскомментируйте ТОЛЬКО СЕЙЧАС
     await User.deleteMany({});
     await Chat.deleteMany({});
+    console.log('🗑️ База очищена');
     
-    // 1. Главный админ
+    // 1. Создаем admin
     await User.create({ username: 'admin', password: 'Admin@1562', role: 'admin' });
-    console.log('✅ Создан admin / Admin@1562');
-
-    // 2. Второй оператор
+    console.log('✅ Создан: admin / Admin@1562');
+    
+    // 2. Создаем operator2 (ЭТОГО НЕ БЫЛО В ВАШЕМ КОДЕ!)
     await User.create({ username: 'operator2', password: 'Op#2024_LNR', role: 'admin' });
-    console.log('✅ Создан operator2 / Op#2024_LNR');
-
-    // 3. Настройки (создаются если их нет)
+    console.log('✅ Создан: operator2 / Op#2024_LNR');
+    
+    // 3. Настройки
     if (!(await Settings.findOne())) {
         await Settings.create({
             mainTitle: 'Анкеты девушек',
@@ -110,8 +109,8 @@ async function initDefaults() {
             globalBotEnabled: true
         });
     }
-
-    // 4. Демо-анкеты (создаются если их нет)
+    
+    // 4. Анкеты
     if ((await Girl.countDocuments()) === 0) {
         await Girl.insertMany([
             { name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная девушка.', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{ name: 'Встреча', price: '3000' }, { name: 'Свидание', price: '5000' }, { name: 'Ночь', price: '10000' }] },
