@@ -389,10 +389,35 @@ function closeAgeModal(){}
 function switchAuthTab(tab){document.querySelectorAll('.auth-tab').forEach((t,i)=>{t.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1))});document.getElementById('loginForm').style.display=tab==='login'?'block':'none';document.getElementById('registerForm').style.display=tab==='register'?'block':'none'}
 function openAuthModal(){document.getElementById('authModal').classList.add('show')}
 function closeAuthModal(){document.getElementById('authModal').classList.remove('show')}
-function login(){const nick=document.getElementById('loginNick').value.trim(),pass=document.getElementById('loginPass').value.trim();if(!nick||!pass)return showToast('Заполните все поля','error');const user=state.users.find(u=>u.username===nick&&u.password===pass);if(!user)return showToast('Неверный логин или пароль','error');state.currentUser={username:user.username,role:user.role};saveState();closeAuthModal();updateUIForLoggedUser();showToast('Добро пожаловать, '+nick+'!','success')}
-function register(){const nick=document.getElementById('regNick').value.trim(),pass=document.getElementById('regPass').value.trim();if(!nick||!pass)return showToast('Заполните все поля','error');if(nick.length<3)return showToast('Никнейм минимум 3 символа','error');if(pass.length<6)return showToast('Пароль минимум 6 символов','error');if(state.users.find(u=>u.username===nick))return showToast('Никнейм занят','error');state.users.push({username:nick,password:pass,role:'client'});state.currentUser={username:nick,role:'client'};saveState();closeAuthModal();updateUIForLoggedUser();showToast('Регистрация успешна!','success')}
-function logout(){state.currentUser=null;saveState();closeProfileDropdown();document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.querySelector('[data-section="girls"]').classList.add('active');state.currentSection='girls';document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-girls').classList.add('active');document.getElementById('pdName').textContent='Профиль';document.getElementById('adminBtn').style.display='none';showToast('Вы вышли','success')}
-function updateUIForLoggedUser(){document.getElementById('pdName').textContent='👤 '+state.currentUser.username;document.getElementById('adminBtn').style.display=state.currentUser.role==='admin'?'flex':'none'}
+function login(){
+  const nick = document.getElementById('loginNick').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  
+  if(!nick || !pass) return showToast('Заполните все поля','error');
+  
+  // Отправляем запрос на сервер для проверки
+  fetch('/api/auth', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username: nick, password: pass})
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success) {
+      state.currentUser = {username: data.user.username, role: data.user.role};
+      saveState();
+      closeAuthModal();
+      updateUIForLoggedUser();
+      showToast('Добро пожаловать, '+nick+'!','success');
+    } else {
+      showToast(data.message || 'Неверный логин или пароль','error');
+    }
+  })
+  .catch(err => {
+    console.error('Login error:', err);
+    showToast('Ошибка соединения','error');
+  });
+}
 function checkAuth(cb){if(!state.currentUser){openAuthModal();return false}cb();return true}
 function toggleProfileDropdown(){if(!state.currentUser){openAuthModal();return}document.getElementById('profileDropdown').classList.toggle('show')}
 function closeProfileDropdown(){document.getElementById('profileDropdown').classList.remove('show')}
