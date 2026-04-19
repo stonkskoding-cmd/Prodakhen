@@ -614,7 +614,7 @@ profileBadge.style.display='none';
 }
 }
 function playNotificationSound(){
-const audio=new Audio('audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unE......');
+const audio=new Audio('audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unE......');
 audio.play().catch(()=>{});
 }
 function showNotification(text){
@@ -658,37 +658,43 @@ showToast('Ошибка отправки','error');
 });
 }
 
-// ===== ЗАГРУЗКА ИСТОРИИ =====
-async function initChat(){
-if(!state.currentUser)return;
-const uid=state.currentUser.username;
+// ===== ЗАГРУЗКА ИСТОРИИ ИЛИ ОТКРЫТИЕ АНКЕТЫ =====
+async function initChat(girlId = null){
+if(!state.currentUser) return;
+const uid = state.currentUser.username;
+
+if(girlId){
+const girl = state.girls.find(g => g.id == girlId);
+if(girl){
+if(!state.chats[uid]) state.chats[uid] = {messages:[],waitingForOperator:false,botEnabled:true,botStep:'girl_selected',selectedGirl:girl};
+else { state.chats[uid].selectedGirl = girl; state.chats[uid].botStep = 'girl_selected'; }
+
+window.addBotMessage(uid,'Здравствуйте! 👋 Вы выбрали:');
+window.addBotMessage(uid,'',{type:'profile',girl});
+window.addBotMessage(uid,'💰 Оплата девушке в руки\nНажмите на услугу:',{type:'services',girl});
+saveState(); window.renderChat(); return;
+}
+}
+
 try{
 const res=await fetch(`/api/chat/${uid}`);
 if(res.ok){
 const data=await res.json();
 if(data.messages && data.messages.length>0){
-state.chats[uid]={
-messages:data.messages,
-waitingForOperator:data.messages.some(m=>m.type==='user' && m.text && !m.text.includes('[Оператор]')),
-botEnabled:true,
-botStep:'greet',
-selectedGirl:null
-};
+state.chats[uid]={messages:data.messages,waitingForOperator:data.messages.some(m=>m.type==='user'&&m.text&&!m.text.includes('[Оператор]')),botEnabled:true,botStep:'greet',selectedGirl:null};
 }else{
 state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null};
 window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?');
-window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.');
+window.addBotMessage(uid,'Напишите город, подберу анкету.');
 }
 }
 }catch(e){
 if(!state.chats[uid]){
 state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null};
-window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?');
-window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.');
+window.addBotMessage(uid,'Здравствуйте! 👋 Напишите город.');
 }
 }
-saveState();
-window.renderChat();
+saveState(); window.renderChat();
 }
 
 // ===== АВТООБНОВЛЕНИЕ ЧАТА КЛИЕНТА =====
@@ -873,14 +879,16 @@ document.getElementById('profileContent').innerHTML=ih+'<div class="profile-deta
 document.getElementById('profileModal').classList.add('show');
 }
 function closeProfileModal(){document.getElementById('profileModal').classList.remove('show')}
+
 function orderGirl(id){
 checkAuth(()=>{
 const g=state.girls.find(x=>x.id===id);
 if(!g)return;
 navigateTo('chat');
-setTimeout(()=>sendBotOrderMessage(g),500);
+setTimeout(()=>initChat(g.id),300);
 });
 }
+
 function openCitiesModal(){
 if(!state.currentUser){openAuthModal();return}
 const list=document.getElementById('citiesList');
