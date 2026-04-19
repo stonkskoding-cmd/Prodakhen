@@ -85,19 +85,19 @@ const User = mongoose.model('User', userSchema);
 const Chat = mongoose.model('Chat', chatSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 
+// Инициализация данных
 async function initDefaults() {
-    // 🧹 ОЧИСТКА БАЗЫ - УБЕРИТЕ // СЛЕДУЮЩИХ 3 СТРОК
-    await User.deleteMany({});
-    await Chat.deleteMany({});
-    console.log('🗑️ База очищена');
+    // 1. Создаем admin (если нет)
+    if (!(await User.findOne({ username: 'admin' }))) {
+        await User.create({ username: 'admin', password: 'admin123', role: 'admin' });
+        console.log('✅ Создан: admin / admin123');
+    }
     
-    // 1. Создаем admin
-    await User.create({ username: 'admin', password: 'admin123', role: 'admin' });
-    console.log('✅ Создан: admin / admin123');
-    
-    // 2. Создаем operator2 (ЭТОГО НЕ БЫЛО!)
-    await User.create({ username: 'operator2', password: 'operator123', role: 'admin' });
-    console.log('✅ Создан: operator2 / operator123');
+    // 2. Создаем operator2 (ЭТОГО НЕ ХВАТАЛО!)
+    if (!(await User.findOne({ username: 'operator2' }))) {
+        await User.create({ username: 'operator2', password: 'operator123', role: 'admin' });
+        console.log('✅ Создан: operator2 / operator123');
+    }
 
     // 3. Настройки
     if (!(await Settings.findOne())) {
