@@ -254,7 +254,7 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 <main class="main">
 <section class="section active" id="sec-girls">
   <div class="catalog-header"><h1 id="mainHeaderTitle">Анкеты девушек</h1><p id="mainHeaderSubtitle">Выберите идеальную компанию для незабываемого вечера</p></div>
-  <!-- Телефон перемещён сюда -->
+  <!-- Телефон размещен над каталогом/фильтрами -->
   <div id="catalogPhone" style="margin-bottom: 20px; text-align: center; display: none;">
     <a href="#" id="catalogPhoneLink" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 20px; color: #ff6090; text-decoration: none; font-weight: 700; font-size: 1.1rem; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px;">
       📞 +7 XXX XXX-XX-XX
@@ -296,39 +296,39 @@ let tempPhotos=[null,null,null,null];
 
 // ===== ГЛОБАЛЬНЫЕ ФУНКЦИИ =====
 window.sendAdminReply = async function() {
-const inp = document.getElementById('adminChatInput');
-const text = inp.value.trim();
-if (!text || !state.adminChatWith) return;
-const uid = state.adminChatWith;
-const ch = state.chats[uid];
-if (!ch) return;
-if (ch.messages.length > 0 && ch.messages[ch.messages.length - 1].extra?.type === 'processing') { ch.messages.pop(); }
-ch.messages.push({ type: 'bot', text: '[Оператор] ' + text, time: Date.now() });
-ch.waitingForOperator = false; ch.botStep = 'greet'; ch.selectedGirl = null; ch.botEnabled = true;
-saveState(); inp.value = '';
-try { await fetch('/api/admin/chat/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, text: text }) }); } catch (e) { console.error('Failed to send reply:', e); }
-renderAdminChatMessages(); renderAdminChats(); window.renderChat();
+  const inp = document.getElementById('adminChatInput');
+  const text = inp.value.trim();
+  if (!text || !state.adminChatWith) return;
+  const uid = state.adminChatWith;
+  const ch = state.chats[uid];
+  if (!ch) return;
+  if (ch.messages.length > 0 && ch.messages[ch.messages.length - 1].extra?.type === 'processing') { ch.messages.pop(); }
+  ch.messages.push({ type: 'bot', text: '[Оператор] ' + text, time: Date.now() });
+  ch.waitingForOperator = false; ch.botStep = 'greet'; ch.selectedGirl = null; ch.botEnabled = true;
+  saveState(); inp.value = '';
+  try { await fetch('/api/admin/chat/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, text: text }) }); } catch (e) { console.error('Failed to send reply:', e); }
+  renderAdminChatMessages(); renderAdminChats(); window.renderChat();
 };
 
 window.clearChatHistory = async function() {
-if (!state.adminChatWith) return;
-const uid = state.adminChatWith;
-try { await fetch(`/api/admin/chat/${uid}/clear`, { method: 'PUT' }); if (state.chats[uid]) { state.chats[uid].messages = []; state.chats[uid].waitingForOperator = false; state.chats[uid].botStep = 'greet'; state.chats[uid].selectedGirl = null; state.chats[uid].botEnabled = true; saveState(); } } catch (e) { showToast('Ошибка при очистке', 'error'); return; }
-renderAdminChatMessages(); renderAdminChats(); window.renderChat(); showToast('История чата очищена', 'success');
+  if (!state.adminChatWith) return;
+  const uid = state.adminChatWith;
+  try { await fetch(`/api/admin/chat/${uid}/clear`, { method: 'PUT' }); if (state.chats[uid]) { state.chats[uid].messages = []; state.chats[uid].waitingForOperator = false; state.chats[uid].botStep = 'greet'; state.chats[uid].selectedGirl = null; state.chats[uid].botEnabled = true; saveState(); } } catch (e) { showToast('Ошибка при очистке', 'error'); return; }
+  renderAdminChatMessages(); renderAdminChats(); window.renderChat(); showToast('История чата очищена', 'success');
 };
 
 window.deleteChatCompletely = async function() {
-if (!state.adminChatWith || !confirm('Полностью удалить чат с ' + state.adminChatWith + '?')) return;
-const uid = state.adminChatWith;
-try { const res = await fetch(`/api/admin/chat/${uid}`, { method: 'DELETE' }); if (res.ok) { delete state.chats[uid]; saveState(); closeAdminChat(); renderAdminChats(); showToast('Чат полностью удалён', 'success'); } } catch (e) { showToast('Ошибка при удалении', 'error'); }
+  if (!state.adminChatWith || !confirm('Полностью удалить чат с ' + state.adminChatWith + '?')) return;
+  const uid = state.adminChatWith;
+  try { const res = await fetch(`/api/admin/chat/${uid}`, { method: 'DELETE' }); if (res.ok) { delete state.chats[uid]; saveState(); closeAdminChat(); renderAdminChats(); showToast('Чат полностью удалён', 'success'); } } catch (e) { showToast('Ошибка при удалении', 'error'); }
 };
 
 window.resetClientBot = function() {
-if (!state.adminChatWith) return;
-const chat = state.chats[state.adminChatWith]; if (!chat) return;
-chat.botStep = 'greet'; chat.waitingForOperator = false; chat.selectedGirl = null; chat.botEnabled = true; saveState();
-window.addBotMessage(state.adminChatWith, '🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
-renderAdminChatMessages(); showToast('Бот сброшен', 'success');
+  if (!state.adminChatWith) return;
+  const chat = state.chats[state.adminChatWith]; if (!chat) return;
+  chat.botStep = 'greet'; chat.waitingForOperator = false; chat.selectedGirl = null; chat.botEnabled = true; saveState();
+  window.addBotMessage(state.adminChatWith, '🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?');
+  renderAdminChatMessages(); showToast('Бот сброшен', 'success');
 };
 
 window.deleteChat = function(uid) { state.adminChatWith = uid; window.deleteChatCompletely(); };
@@ -390,7 +390,7 @@ async function loadSiteSettings(){ try{ const res=await fetch('/api/settings'); 
 async function saveSiteSettings(){ const settings={ mainTitle:document.getElementById('admMainTitle').value, mainSubtitle:document.getElementById('admMainSubtitle').value, title:document.getElementById('admSiteTitle').value, desc:document.getElementById('admSiteDesc').value, phone:document.getElementById('admSitePhone').value }; try{ const res=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)}); if(res.ok){ state.settings=settings; renderMainHeaders(); document.title=settings.title; showToast('Настройки сохранены и применены для всех!','success'); }else{showToast('Ошибка сохранения','error')} }catch(e){showToast('Ошибка соединения','error')} }
 function renderMainHeaders(){ const t=document.getElementById('mainHeaderTitle'); const s=document.getElementById('mainHeaderSubtitle'); if(t)t.textContent=state.settings.mainTitle; if(s)s.textContent=state.settings.mainSubtitle; }
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ТЕЛЕФОНА (теперь в каталоге)
+// ✅ ТЕЛЕФОН ТЕПЕРЬ В КАТАЛОГЕ
 function updatePhoneDisplay(){
   const el = document.getElementById('catalogPhone');
   const link = document.getElementById('catalogPhoneLink');
@@ -409,19 +409,34 @@ function showNotification(text){ showToast('🔔 '+text,'success'); }
 
 async function sendMessage(){ const inp=document.getElementById('chatInput'),text=inp.value.trim(); if(!text)return; checkAuth(async ()=>{ const uid=state.currentUser.username; if(!state.chats[uid])state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; state.chats[uid].messages.push({type:'user',text,time:Date.now()}); saveState(); window.renderChat(); inp.value=''; try{ const res=await fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) }); if(res.ok){ const data=await res.json(); if(data.reply){ state.chats[uid].messages.push({ type:'bot', text:data.reply.text, extra:data.reply, time:Date.now() }); saveState(); window.renderChat(); } } }catch(e){ console.error('Failed to send message:',e); showToast('Ошибка отправки','error'); } }); }
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ INITCHAT
+// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ INITCHAT (ИСПОЛЬЗУЕТ /api/chat/init)
 async function initChat(girlId = null){
   if(!state.currentUser) return;
   const uid = state.currentUser.username;
   if(girlId){
     try{
-      console.log('Init chat with girl:', girlId);
-      const res = await fetch('/api/chat/init', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: uid, girlId: girlId}) });
+      console.log('Init chat with girl ID:', girlId);
+      const res = await fetch('/api/chat/init', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        // Отправляем строку, сервер сам разберется
+        body: JSON.stringify({username: uid, girlId: String(girlId)}) 
+      });
       if(res.ok){
         const data = await res.json();
-        state.chats[uid] = { messages: data.messages, waitingForOperator: false, botEnabled: true, botStep: 'girl_selected', selectedGirl: data.messages.find(m => m.extra?.type === 'services')?.extra?.girl || null };
+        state.chats[uid] = { 
+          messages: data.messages, 
+          waitingForOperator: false, 
+          botEnabled: true, 
+          botStep: 'girl_selected', 
+          selectedGirl: data.messages.find(m => m.extra?.type === 'services')?.extra?.girl || null 
+        };
         saveState(); window.renderChat();
-      } else { const err = await res.json(); console.error('Init chat error:', err); showToast('Ошибка: ' + (err.details || err.error), 'error'); }
+      } else { 
+        const err = await res.json(); 
+        console.error('Init chat error:', err); 
+        showToast('Ошибка: ' + (err.error || err.details), 'error'); 
+      }
     } catch(e){ console.error('Init chat error:', e); showToast('Ошибка соединения', 'error'); }
   } else {
     try{ const res=await fetch(`/api/chat/${uid}`); if(res.ok){ const data=await res.json(); if(data.messages && data.messages.length>0){ state.chats[uid]={ messages:data.messages, waitingForOperator:data.messages.some(m=>m.type==='user'&&m.text&&!m.text.includes('[Оператор]')), botEnabled:true, botStep:'greet', selectedGirl:null }; }else{ state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?'); window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.'); } } }catch(e){ if(!state.chats[uid]){ state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; window.addBotMessage(uid,'Здравствуйте! 👋 Напишите город.'); } }
@@ -468,13 +483,14 @@ function createGirlCard(g){ const mp=(g.photos&&g.photos[0])||''; const ih=mp?'<
 function openProfile(id){ const g=state.girls.find(x=>x.id===id); if(!g)return; const mp=(g.photos&&g.photos[0])||''; const ih=mp?'<img class="profile-modal-img" src="'+mp+'" alt="'+g.name+'">':'<div class="profile-modal-img-placeholder">👩</div>'; const sH=(g.services||[]).map(s=>'<div class="profile-service"><span class="name">'+s.name+'</span><span class="price">'+s.price+'₽</span></div>').join(''); document.getElementById('profileContent').innerHTML=ih+'<div class="profile-detail"><h2>'+g.name+'</h2><div class="city">📍 '+g.city+'</div><p class="desc">'+g.desc+'</p><div class="section-title">Характеристики</div><div class="profile-stats-grid"><div class="profile-stat"><div class="label">Рост</div><div class="value">'+g.height+' см</div></div><div class="profile-stat"><div class="label">Вес</div><div class="value">'+g.weight+' кг</div></div><div class="profile-stat"><div class="label">Грудь</div><div class="value">'+g.breast+'</div></div><div class="profile-stat"><div class="label">Возраст</div><div class="value">'+g.age+' лет</div></div></div><div class="section-title">Предпочтения</div><p class="desc">'+g.prefs+'</p><div class="section-title">Услуги</div><div class="profile-services">'+sH+'</div><div class="profile-payment">💰 Оплата девушкам в руки</div><button class="profile-order-btn" onclick="orderGirl('+g.id+');closeProfileModal()">Заказать</button></div>'; document.getElementById('profileModal').classList.add('show'); }
 function closeProfileModal(){document.getElementById('profileModal').classList.remove('show')}
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАКАЗА
+// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАКАЗА (ОТПРАВЛЯЕТ ЧИСЛОВОЙ ID)
 function orderGirl(id){
   checkAuth(()=>{
     const g=state.girls.find(x=>x.id===id);
     if(!g)return;
     navigateTo('chat');
-    setTimeout(()=>initChat(g._id || String(g.id)), 300);
+    // Передаем числовой id
+    setTimeout(()=>initChat(g.id), 300);
   });
 }
 
