@@ -254,7 +254,7 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 <main class="main">
 <section class="section active" id="sec-girls">
   <div class="catalog-header"><h1 id="mainHeaderTitle">Анкеты девушек</h1><p id="mainHeaderSubtitle">Выберите идеальную компанию для незабываемого вечера</p></div>
-  <!-- Телефон размещен над каталогом/фильтрами -->
+  <!-- Телефон над каталогом -->
   <div id="catalogPhone" style="margin-bottom: 20px; text-align: center; display: none;">
     <a href="#" id="catalogPhoneLink" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 20px; color: #ff6090; text-decoration: none; font-weight: 700; font-size: 1.1rem; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px;">
       📞 +7 XXX XXX-XX-XX
@@ -389,17 +389,7 @@ function renderAdminGirls(){const list=document.getElementById('adminGirlsList')
 async function loadSiteSettings(){ try{ const res=await fetch('/api/settings'); if(res.ok){ const s=await res.json(); state.settings=s; document.getElementById('admMainTitle').value=s.mainTitle||''; document.getElementById('admMainSubtitle').value=s.mainSubtitle||''; document.getElementById('admSiteTitle').value=s.title||''; document.getElementById('admSiteDesc').value=s.desc||''; document.getElementById('admSitePhone').value=s.phone||''; updatePhoneDisplay(); renderMainHeaders(); } }catch(e){console.error('Failed to load settings',e)} }
 async function saveSiteSettings(){ const settings={ mainTitle:document.getElementById('admMainTitle').value, mainSubtitle:document.getElementById('admMainSubtitle').value, title:document.getElementById('admSiteTitle').value, desc:document.getElementById('admSiteDesc').value, phone:document.getElementById('admSitePhone').value }; try{ const res=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)}); if(res.ok){ state.settings=settings; renderMainHeaders(); document.title=settings.title; showToast('Настройки сохранены и применены для всех!','success'); }else{showToast('Ошибка сохранения','error')} }catch(e){showToast('Ошибка соединения','error')} }
 function renderMainHeaders(){ const t=document.getElementById('mainHeaderTitle'); const s=document.getElementById('mainHeaderSubtitle'); if(t)t.textContent=state.settings.mainTitle; if(s)s.textContent=state.settings.mainSubtitle; }
-
-// ✅ ТЕЛЕФОН ТЕПЕРЬ В КАТАЛОГЕ
-function updatePhoneDisplay(){
-  const el = document.getElementById('catalogPhone');
-  const link = document.getElementById('catalogPhoneLink');
-  if(state.settings.phone){
-    el.style.display = 'block';
-    link.textContent = '📞 ' + state.settings.phone;
-    link.href = 'tel:' + state.settings.phone.replace(/\s/g,'');
-  } else { el.style.display = 'none'; }
-}
+function updatePhoneDisplay(){ const el = document.getElementById('catalogPhone'); const link = document.getElementById('catalogPhoneLink'); if(state.settings.phone){ el.style.display = 'block'; link.textContent = '📞 ' + state.settings.phone; link.href = 'tel:' + state.settings.phone.replace(/\s/g,''); } else { el.style.display = 'none'; } }
 
 function startChatsUpdate(){ if(state.chatsUpdateInterval)clearInterval(state.chatsUpdateInterval); state.chatsUpdateInterval=setInterval(async ()=>{ if(state.currentSection==='admin'){ try{ const res=await fetch('/api/admin/chats'); if(res.ok){ const chats=await res.json(); const newCount=chats.filter(c=>c.waitingForOperator || (c.messages.length>0 && c.messages[c.messages.length-1].type==='user')).length; chats.forEach(chat=>{ const oldChat=state.chats[chat.userId]; state.chats[chat.userId]=chat; if(oldChat && chat.messages.length > oldChat.messages.length){ playNotificationSound(); showNotification('Новое сообщение от '+chat.userId); } }); updateChatsBadge(newCount); renderAdminChats(); if(state.adminChatWith && state.chats[state.adminChatWith]){ renderAdminChatMessages(); } } }catch(e){} } }, 5000); }
 function stopChatsUpdate(){ if(state.chatsUpdateInterval){clearInterval(state.chatsUpdateInterval);state.chatsUpdateInterval=null} }
@@ -409,34 +399,19 @@ function showNotification(text){ showToast('🔔 '+text,'success'); }
 
 async function sendMessage(){ const inp=document.getElementById('chatInput'),text=inp.value.trim(); if(!text)return; checkAuth(async ()=>{ const uid=state.currentUser.username; if(!state.chats[uid])state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; state.chats[uid].messages.push({type:'user',text,time:Date.now()}); saveState(); window.renderChat(); inp.value=''; try{ const res=await fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) }); if(res.ok){ const data=await res.json(); if(data.reply){ state.chats[uid].messages.push({ type:'bot', text:data.reply.text, extra:data.reply, time:Date.now() }); saveState(); window.renderChat(); } } }catch(e){ console.error('Failed to send message:',e); showToast('Ошибка отправки','error'); } }); }
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ INITCHAT (ИСПОЛЬЗУЕТ /api/chat/init)
+// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ INITCHAT (ТЕПЕРЬ ИСПОЛЬЗУЕТ /api/chat/init)
 async function initChat(girlId = null){
   if(!state.currentUser) return;
   const uid = state.currentUser.username;
   if(girlId){
     try{
       console.log('Init chat with girl ID:', girlId);
-      const res = await fetch('/api/chat/init', { 
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
-        // Отправляем строку, сервер сам разберется
-        body: JSON.stringify({username: uid, girlId: String(girlId)}) 
-      });
+      const res = await fetch('/api/chat/init', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: uid, girlId: girlId}) });
       if(res.ok){
         const data = await res.json();
-        state.chats[uid] = { 
-          messages: data.messages, 
-          waitingForOperator: false, 
-          botEnabled: true, 
-          botStep: 'girl_selected', 
-          selectedGirl: data.messages.find(m => m.extra?.type === 'services')?.extra?.girl || null 
-        };
+        state.chats[uid] = { messages: data.messages, waitingForOperator: false, botEnabled: true, botStep: 'girl_selected', selectedGirl: data.messages.find(m => m.extra?.type === 'services')?.extra?.girl || null };
         saveState(); window.renderChat();
-      } else { 
-        const err = await res.json(); 
-        console.error('Init chat error:', err); 
-        showToast('Ошибка: ' + (err.error || err.details), 'error'); 
-      }
+      } else { const err = await res.json(); console.error('Init chat error:', err); showToast('Ошибка: ' + (err.error || err.details), 'error'); }
     } catch(e){ console.error('Init chat error:', e); showToast('Ошибка соединения', 'error'); }
   } else {
     try{ const res=await fetch(`/api/chat/${uid}`); if(res.ok){ const data=await res.json(); if(data.messages && data.messages.length>0){ state.chats[uid]={ messages:data.messages, waitingForOperator:data.messages.some(m=>m.type==='user'&&m.text&&!m.text.includes('[Оператор]')), botEnabled:true, botStep:'greet', selectedGirl:null }; }else{ state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?'); window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.'); } } }catch(e){ if(!state.chats[uid]){ state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; window.addBotMessage(uid,'Здравствуйте! 👋 Напишите город.'); } }
@@ -457,22 +432,7 @@ function stopChatRefresh(){ if(state.chatRefreshInterval){clearInterval(state.ch
 function sendBotOrderMessage(girl){ const uid=state.currentUser.username; if(!state.chats[uid])initChat(); state.chats[uid].selectedGirl=girl; state.chats[uid].botStep='order'; state.chats[uid].botEnabled=true; saveState(); window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Вы выбрали:'); window.addBotMessage(uid,'',{type:'profile',girl}); window.addBotMessage(uid,'💰 Оплата девушке в руки\nНажмите на выбранную услугу:',{type:'services',girl}); }
 function formatBotMessage(msg){ let h=esc(msg.text).replace(/\n/g,'<br>'); if(!msg.extra)return h; if(msg.extra.type==='profile'||msg.extra.type==='order_greeting'){ if(msg.extra.type==='order_greeting')h=''; const g=msg.extra.girl; const mp=(g.photos&&g.photos[0])||''; const ih=mp?'<img class="msg-profile-img" src="'+mp+'">':'<div class="msg-profile-img-placeholder">👩</div>'; h+='<div class="msg-profile">'+ih+'<div class="msg-profile-info"><h4>'+g.name+' • '+g.city+'</h4><div class="price">'+g.services.map(s=>s.name+': '+s.price+'₽').join(', ')+'</div><div class="pay-note">💰 Оплата девушке в руки</div></div></div>'; } if(msg.extra.type==='services'){ const g=msg.extra.girl; h+='<div class="msg-services">'+g.services.map(s=>'<button class="msg-service-btn" onclick="selectService(\''+g.name+'\',\''+s.name+'\',\''+s.price+'\')">'+s.name+' — '+s.price+'₽</button>').join('')+'</div>'; } if(msg.extra.type==='girls_list'){ h+='<div class="msg-services">'+msg.extra.girls.map(g=>'<button class="msg-service-btn" onclick="selectGirlByName(\''+g.name+'\')">'+g.name+' — '+g.city+'</button>').join('')+'</div>'; } return h; }
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ВЫБОРА УСЛУГИ
-function selectService(gn,sn,sp){
-  if(!state.currentUser)return;
-  const uid=state.currentUser.username;
-  const text = gn+' — '+sn+': '+sp+'₽';
-  fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) })
-  .then(res => res.json())
-  .then(data => {
-    if(data.reply){
-      window.addUserMessage(uid, text);
-      window.addBotMessage(uid, data.reply.text, data.reply);
-      saveState();
-      window.renderChat();
-    }
-  }).catch(err => console.error('Error:', err));
-}
+function selectService(gn,sn,sp){ if(!state.currentUser)return; const uid=state.currentUser.username; const text = gn+' — '+sn+': '+sp+'₽'; fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) }).then(res => res.json()).then(data => { if(data.reply){ window.addUserMessage(uid, text); window.addBotMessage(uid, data.reply.text, data.reply); saveState(); window.renderChat(); } }).catch(err => console.error('Error:', err)); }
 
 function selectGirlByName(n){ if(!state.currentUser)return; const uid=state.currentUser.username; fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:n}) }); window.addUserMessage(uid,n); }
 function renderCatalogFilters(){ const c=document.getElementById('catalogFilters'); let h='<button class="filter-btn '+(state.currentCityFilter==='all'?'active':'')+'" onclick="filterCity(\'all\')">Все</button>'; CITIES.forEach(city=>{h+='<button class="filter-btn '+(state.currentCityFilter===city?'active':'')+'" onclick="filterCity(\''+city+'\')">'+city+'</button>'}); c.innerHTML=h; }
@@ -489,7 +449,6 @@ function orderGirl(id){
     const g=state.girls.find(x=>x.id===id);
     if(!g)return;
     navigateTo('chat');
-    // Передаем числовой id
     setTimeout(()=>initChat(g.id), 300);
   });
 }
