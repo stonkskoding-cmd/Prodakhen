@@ -333,7 +333,6 @@ function showNotification(text){ showToast('🔔 '+text,'success'); }
 
 async function sendMessage(){ const inp=document.getElementById('chatInput'),text=inp.value.trim(); if(!text)return; checkAuth(async ()=>{ const uid=state.currentUser.username; if(!state.chats[uid])state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; state.chats[uid].messages.push({type:'user',text,time:Date.now()}); saveState(); window.renderChat(); inp.value=''; try{ const res=await fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) }); if(res.ok){ const data=await res.json(); if(data.reply){ state.chats[uid].messages.push({ type:'bot', text:data.reply.text, extra:data.reply, time:Date.now() }); saveState(); window.renderChat(); } } }catch(e){ console.error('Failed to send message:',e); showToast('Ошибка отправки','error'); } }); }
 
-// ✅ ИСПРАВЛЕННЫЙ INITCHAT (УНИВЕРСАЛЬНЫЙ ПОИСК)
 async function initChat(girlId = null){
   if(!state.currentUser) return;
   const uid = state.currentUser.username;
@@ -372,7 +371,6 @@ function filterCity(city){ state.currentCityFilter=city; renderCatalogFilters();
 function getFilteredGirls(){ return state.currentCityFilter==='all'?state.girls:state.girls.filter(g=>g.city===state.currentCityFilter); }
 function renderGirls(){ const girls=getFilteredGirls(),grid=document.getElementById('girlsGrid'); if(girls.length===0){grid.innerHTML='<div class="empty-state"><div class="icon">😔</div><p>Анкет пока нет</p></div>';return} grid.innerHTML=girls.map(g=>createGirlCard(g)).join(''); }
 
-// ✅ ИСПРАВЛЕННЫЙ CREATEGIRLCARD (УНИВЕРСАЛЬНЫЙ ID)
 function createGirlCard(g){
   const cardId = g._id || g.id;
   const mp=(g.photos&&g.photos[0])||'';
@@ -380,7 +378,6 @@ function createGirlCard(g){
   return '<div class="girl-card" onclick="openProfile(\''+cardId+'\')">'+ih+'<div class="girl-card-info"><div class="girl-card-top"><span class="girl-card-name">'+g.name+'</span><span class="girl-card-city">'+g.city+'</span></div><p class="girl-card-desc">'+g.desc+'</p><div class="girl-card-stats"><span class="stat-tag">📏 '+g.height+' см</span><span class="stat-tag">⚖️ '+g.weight+' кг</span><span class="stat-tag">👙 '+g.breast+'</span><span class="stat-tag">🎂 '+g.age+' лет</span></div><div class="girl-card-payment">💰 Оплата девушкам в руки</div><div class="girl-card-actions"><button class="btn-open" onclick="event.stopPropagation();openProfile(\''+cardId+'\')">Открыть анкету</button><button class="btn-order" onclick="event.stopPropagation();orderGirl(\''+cardId+'\')">Заказать</button></div></div></div>';
 }
 
-// ✅ ИСПРАВЛЕННЫЙ OPENPROFILE (УНИВЕРСАЛЬНЫЙ ПОИСК)
 function openProfile(id){
   const g = state.girls.find(x => (x._id || x.id) == id);
   if(!g) return;
@@ -392,7 +389,6 @@ function openProfile(id){
 }
 function closeProfileModal(){document.getElementById('profileModal').classList.remove('show')}
 
-// ✅ ИСПРАВЛЕННЫЙ ORDERGIRL (ОТПРАВЛЯЕТ ПРАВИЛЬНЫЙ ID)
 function orderGirl(id){
   checkAuth(()=>{
     const g = state.girls.find(x => (x._id || x.id) == id);
