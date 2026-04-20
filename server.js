@@ -18,7 +18,7 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 
 // === МОДЕЛИ ===
 const girlSchema = new mongoose.Schema({
-  id: Number, // Оставляем для совместимости со старыми данными
+  id: Number, // Наше поле для короткого ID
   name: { type: String, required: true },
   city: { type: String, required: true },
   photos: [String],
@@ -62,9 +62,9 @@ async function initDefaults() {
   if (!(await Settings.findOne())) await Settings.create({ mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию', title: 'BABYGIRL_LNR', phone: '', globalBotEnabled: true });
   if ((await Girl.countDocuments()) === 0) {
     await Girl.insertMany([
-      { name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная.', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}] },
-      { name: 'Виктория', city: 'Стаханов', photos: [], desc: 'Яркая брюнетка.', height: '172', weight: '55', breast: '3', age: '23', prefs: 'Танцы', services: [{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'12000'}] },
-      { name: 'София', city: 'Первомайск', photos: [], desc: 'Студентка.', height: '165', weight: '48', breast: '2', age: '20', prefs: 'Фото', services: [{name:'Встреча',price:'2500'},{name:'Свидание',price:'4000'},{name:'Ночь',price:'8000'}] }
+      { id: 1, name: 'Алина', city: 'Луганск', photos: [], desc: 'Нежная и романтичная.', height: '168', weight: '52', breast: '2', age: '21', prefs: 'Романтика', services: [{name:'Встреча',price:'3000'},{name:'Свидание',price:'5000'},{name:'Ночь',price:'10000'}] },
+      { id: 2, name: 'Виктория', city: 'Стаханов', photos: [], desc: 'Яркая брюнетка.', height: '172', weight: '55', breast: '3', age: '23', prefs: 'Танцы', services: [{name:'Встреча',price:'3500'},{name:'Свидание',price:'6000'},{name:'Ночь',price:'12000'}] },
+      { id: 3, name: 'София', city: 'Первомайск', photos: [], desc: 'Студентка.', height: '165', weight: '48', breast: '2', age: '20', prefs: 'Фото', services: [{name:'Встреча',price:'2500'},{name:'Свидание',price:'4000'},{name:'Ночь',price:'8000'}] }
     ]);
   }
 }
@@ -77,15 +77,33 @@ app.get('/api/girls', async (req, res) => { try { res.json(await Girl.find().sor
 app.post('/api/auth', async (req, res) => { try { const u = await User.findOne(req.body); if(!u) return res.status(401).json({success:false,message:'Неверный логин или пароль'}); res.json({success:true,user:{username:u.username,role:u.role}}); } catch(e){res.status(500).json({error:e.message})} });
 app.post('/api/register', async (req, res) => { try { if(!req.body.username||!req.body.password) return res.status(400).json({success:false,message:'Заполните поля'}); if(await User.findOne({username:req.body.username})) return res.status(400).json({success:false,message:'Никнейм занят'}); const u = await User.create({username:req.body.username,password:req.body.password,role:'client'}); res.json({success:true,user:{username:u.username,role:u.role}}); } catch(e){res.status(500).json({error:e.message})} });
 
-// ✅ ИСПРАВЛЕННЫЙ БЫСТРЫЙ ЗАКАЗ (РАБОТАЕТ С _id И id)
+// ✅ ИСПРАВЛЕННЫЙ ПОИСК ДЕВУШКИ (СНАЧАЛА ПО ЧИСЛУ id, ПОТОМ ПО _id)
 app.post('/api/chat/init', async (req, res) => {
   try {
     const { username, girlId } = req.body;
     if (!username || !girlId) return res.status(400).json({ error: 'Missing data' });
     
-    // Ищем по _id (новые анкеты) или по id (старые демо)
-    let girl = await Girl.findById(girlId);
-    if (!girl) girl = await Girl.findOne({ id: parseInt(girlId) });
+    let girl = null;
+    
+    // 1. Сначала ищем по нашему короткому числовому полю 'id'
+    // Это работает для демо-анкет (id: 1, 2, 3)
+    if (!isNaN(girlId)) {
+        girl = await Girl.findOne({ id: parseInt(girlId) });
+    }
+
+    // 2. Если не нашли, пробуем найти по MongoDB _id
+    // Это работает для новых анкет, созданных оператором
+    if (!girl) {
+        try {
+            // Проверяем, является ли girlId валидным ObjectId, чтобы избежать ошибки
+            if (mongoose.Types.ObjectId.isValid(girlId)) {
+                girl = await Girl.findById(girlId);
+            }
+        } catch (e) {
+            console.log('Не удалось найти по _id');
+        }
+    }
+    
     if (!girl) return res.status(404).json({ error: 'Girl not found' });
 
     let chat = await Chat.findOne({ userId: username });
