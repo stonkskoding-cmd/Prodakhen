@@ -6,7 +6,6 @@
 <title>BABYGIRL_LNR</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
-/* CSS остался прежним, без изменений для экономии места */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg-primary:#0a0a0f;--bg-secondary:#12121a;--glass:rgba(255,255,255,0.03);--glass-hover:rgba(255,255,255,0.06);--glass-border:rgba(255,255,255,0.08);--glass-border-hover:rgba(233,30,99,0.3);--accent:#e91e63;--accent2:#ff6090;--accent3:#c2185b;--text:#fff;--text-muted:rgba(255,255,255,0.6);--success:#4caf50;--warning:#ff9800;--danger:#f44336;--gradient:linear-gradient(135deg,#e91e63,#9c27b0,#673ab7);--gradient2:linear-gradient(135deg,#ff6090,#e91e63,#c2185b);}
 html{scroll-behavior:smooth}
@@ -240,7 +239,6 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 </style>
 </head>
 <body>
-<!-- HTML структура идентична предыдущей версии -->
 <div class="video-bg" id="videoBg">
 <video autoplay muted loop playsinline webkit-playsinline preload="auto" id="bgVideo"><source src="video/bg.mp4" type="video/mp4"></video>
 <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
@@ -270,207 +268,585 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg-primary);color:var(
 <div class="modal-overlay" id="adminChatModal"><div class="modal admin-chat-modal"><button class="modal-close" onclick="closeAdminChat()">✕</button><div class="modal-header"><h2 id="adminChatTitle">Чат</h2></div><div class="admin-chat-messages" id="adminChatMessages"></div><div class="admin-chat-input-wrap"><input type="text" class="chat-input" id="adminChatInput" placeholder="Ответить..." onkeypress="if(event.key==='Enter')window.sendAdminReply()"><button class="chat-send" onclick="window.sendAdminReply()">➤</button></div><div style="padding:0 20px 15px;display:flex;gap:8px"><button class="admin-btn danger" onclick="window.clearChatHistory()" style="flex:1">🗑️ Очистить</button><button class="admin-btn success" onclick="window.resetClientBot()" style="flex:1">✅ Завершить</button><button class="admin-btn secondary" onclick="closeAdminChat()" style="flex:1">Закрыть</button></div></div></div>
 
 <script>
-const CITIES=['Луганск','Стаханов','Первомайск'];
-let state={currentUser:null,currentSection:'girls',currentCityFilter:'all',girls:[],users:[],chats:{},settings:{mainTitle:'Анкеты девушек',mainSubtitle:'Выберите идеальную компанию для незабываемого вечера',title:'BABYGIRL_LNR',desc:'',phone:''},adminChatWith:null,adminChatInterval:null,chatRefreshInterval:null,chatsUpdateInterval:null,clientChatInterval:null,lastChatsCount:0};
-let tempPhotos=[null,null,null,null];
+// === ГЛОБАЛЬНОЕ СОСТОЯНИЕ ===
+const CITIES = ['Луганск', 'Стаханов', 'Первомайск'];
+let state = {
+    currentUser: null,
+    currentSection: 'girls',
+    currentCityFilter: 'all',
+    girls: [],
+    users: [],
+    chats: {},
+    settings: { mainTitle: 'Анкеты девушек', mainSubtitle: 'Выберите идеальную компанию для незабываемого вечера', title: 'BABYGIRL_LNR', desc: '', phone: '' },
+    adminChatWith: null,
+    adminChatInterval: null,
+    clientChatInterval: null
+};
+let tempPhotos = [null, null, null, null];
 
-// Глобальные функции админа
-window.sendAdminReply = async function() { const inp = document.getElementById('adminChatInput'); const text = inp.value.trim(); if (!text || !state.adminChatWith) return; const uid = state.adminChatWith; const ch = state.chats[uid]; if (!ch) return; if (ch.messages.length > 0 && ch.messages[ch.messages.length - 1].extra?.type === 'processing') { ch.messages.pop(); } ch.messages.push({ type: 'bot', text: '[Оператор] ' + text, time: Date.now() }); ch.waitingForOperator = false; ch.botStep = 'greet'; ch.selectedGirl = null; ch.botEnabled = true; saveState(); inp.value = ''; try { await fetch('/api/admin/chat/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, text: text }) }); } catch (e) { console.error('Failed to send reply:', e); } renderAdminChatMessages(); renderAdminChats(); window.renderChat(); };
-window.clearChatHistory = async function() { if (!state.adminChatWith) return; const uid = state.adminChatWith; try { await fetch(`/api/admin/chat/${uid}/clear`, { method: 'PUT' }); if (state.chats[uid]) { state.chats[uid].messages = []; state.chats[uid].waitingForOperator = false; state.chats[uid].botStep = 'greet'; state.chats[uid].selectedGirl = null; state.chats[uid].botEnabled = true; saveState(); } } catch (e) { showToast('Ошибка при очистке', 'error'); return; } renderAdminChatMessages(); renderAdminChats(); window.renderChat(); showToast('История чата очищена', 'success'); };
-window.deleteChatCompletely = async function() { if (!state.adminChatWith || !confirm('Полностью удалить чат с ' + state.adminChatWith + '?')) return; const uid = state.adminChatWith; try { const res = await fetch(`/api/admin/chat/${uid}`, { method: 'DELETE' }); if (res.ok) { delete state.chats[uid]; saveState(); closeAdminChat(); renderAdminChats(); showToast('Чат полностью удалён', 'success'); } } catch (e) { showToast('Ошибка при удалении', 'error'); } };
-window.resetClientBot = function() { if (!state.adminChatWith) return; const chat = state.chats[state.adminChatWith]; if (!chat) return; chat.botStep = 'greet'; chat.waitingForOperator = false; chat.selectedGirl = null; chat.botEnabled = true; saveState(); window.addBotMessage(state.adminChatWith, '🔄 Заказ завершён. Бот готов принять новый! Какой ваш город?'); renderAdminChatMessages(); showToast('Бот сброшен', 'success'); };
-window.deleteChat = function(uid) { state.adminChatWith = uid; window.deleteChatCompletely(); };
-window.clearSingleChat = function(uid) { state.adminChatWith = uid; window.clearChatHistory(); };
-window.addBotMessage = function(uid, text, extra) { if (!state.chats[uid]) state.chats[uid] = { messages: [], waitingForOperator: false, botEnabled: true, botStep: 'greet', selectedGirl: null }; state.chats[uid].messages.push({ type: 'bot', text, extra, time: Date.now() }); saveState(); window.renderChat(); };
-window.addUserMessage = function(uid, text) { if (!state.chats[uid]) state.chats[uid] = { messages: [], waitingForOperator: false, botEnabled: true, botStep: 'greet', selectedGirl: null }; state.chats[uid].messages.push({ type: 'user', text, time: Date.now() }); saveState(); window.renderChat(); };
-window.renderChat = function() { if (!state.currentUser) return; const uid = state.currentUser.username, chat = state.chats[uid]; if (!chat) return; const c = document.getElementById('chatMessages'), ind = document.getElementById('chatIndicator'); ind.classList.toggle('show', chat.waitingForOperator); let h = ''; chat.messages.forEach(msg => { if (msg.type === 'bot') h += '<div class="chat-msg bot">' + formatBotMessage(msg) + '</div>'; else if (msg.type === 'user') h += '<div class="chat-msg user">' + esc(msg.text) + '</div>'; else h += '<div class="chat-msg system">' + esc(msg.text) + '</div>'; }); c.innerHTML = h; c.scrollTop = c.scrollHeight; };
-
-async function init(){ 
-  document.getElementById('ageModal').classList.add('show'); 
-  await loadState(); 
-  
-  // ✅ ЗАГРУЗКА АКТУАЛЬНЫХ ДАННЫХ С СЕРВЕРА
-  try {
-    const gRes = await fetch('/api/girls');
-    if(gRes.ok) state.girls = await gRes.json();
+// === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===
+async function init() {
+    document.getElementById('ageModal').classList.add('show');
+    await loadLocalState();
     
-    const sRes = await fetch('/api/settings');
-    if(sRes.ok) {
-      const s = await sRes.json();
-      state.settings = s;
-      document.getElementById('admMainTitle').value=s.mainTitle||''; 
-      document.getElementById('admMainSubtitle').value=s.mainSubtitle||''; 
-      document.getElementById('admSiteTitle').value=s.title||''; 
-      document.getElementById('admSiteDesc').value=s.desc||''; 
-      document.getElementById('admSitePhone').value=s.phone||''; 
+    // Загружаем актуальные данные с сервера
+    try {
+        const gRes = await fetch('/api/girls');
+        if (gRes.ok) state.girls = await gRes.json();
+
+        const sRes = await fetch('/api/settings');
+        if (sRes.ok) {
+            const s = await sRes.json();
+            state.settings = s;
+            applySettings(s);
+        }
+    } catch (e) { console.error('Sync error', e); }
+
+    if (state.currentUser) updateUIForLoggedUser();
+    renderGirls();
+    renderCatalogFilters();
+    renderMainHeaders();
+    updatePhoneDisplay();
+    
+    window.addEventListener('scroll', () => {
+        document.getElementById('header').classList.toggle('scrolled', window.scrollY > 20);
+    });
+}
+
+function applySettings(s) {
+    if(s.mainTitle) document.getElementById('admMainTitle').value = s.mainTitle;
+    if(s.mainSubtitle) document.getElementById('admMainSubtitle').value = s.mainSubtitle;
+    if(s.title) document.getElementById('admSiteTitle').value = s.title;
+    if(s.desc) document.getElementById('admSiteDesc').value = s.desc;
+    if(s.phone) document.getElementById('admSitePhone').value = s.phone;
+}
+
+// === УПРАВЛЕНИЕ СОСТОЯНИЕМ ===
+async function loadLocalState() {
+    try {
+        const s = localStorage.getItem('bglr_state');
+        if (s) {
+            const p = JSON.parse(s);
+            state = { ...state, ...p };
+        }
+        if (!state.users || state.users.length === 0) state.users = [{ username: 'admin', password: 'admin123', role: 'admin' }];
+    } catch (e) { console.error(e); }
+}
+
+function saveState() {
+    localStorage.setItem('bglr_state', JSON.stringify({
+        currentUser: state.currentUser,
+        girls: state.girls,
+        users: state.users,
+        chats: state.chats
+    }));
+}
+
+// === АВТОРИЗАЦИЯ ===
+function login() {
+    const nick = document.getElementById('loginNick').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    if (!nick || !pass) return showToast('Заполните все поля', 'error');
+
+    fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: nick, password: pass })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            state.currentUser = { username: data.user.username, role: data.user.role };
+            saveState();
+            closeAuthModal();
+            updateUIForLoggedUser();
+            showToast('Добро пожаловать, ' + nick + '!', 'success');
+        } else {
+            showToast(data.message || 'Неверный логин или пароль', 'error');
+        }
+    })
+    .catch(err => showToast('Ошибка соединения', 'error'));
+}
+
+function register() {
+    const nick = document.getElementById('regNick').value.trim();
+    const pass = document.getElementById('regPass').value.trim();
+    if (!nick || !pass) return showToast('Заполните все поля', 'error');
+    if (nick.length < 3) return showToast('Никнейм минимум 3 символа', 'error');
+    if (pass.length < 4) return showToast('Пароль минимум 4 символа', 'error');
+
+    fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: nick, password: pass })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            state.users.push({ username: nick, password: pass, role: 'client' });
+            state.currentUser = { username: nick, role: 'client' };
+            saveState();
+            closeAuthModal();
+            updateUIForLoggedUser();
+            showToast('Регистрация успешна!', 'success');
+        } else {
+            showToast(data.message, 'error');
+        }
+    });
+}
+
+function logout() {
+    state.currentUser = null;
+    saveState();
+    closeProfileDropdown();
+    navigateTo('girls');
+    document.getElementById('pdName').textContent = 'Профиль';
+    document.getElementById('adminBtn').style.display = 'none';
+    showToast('Вы вышли', 'success');
+}
+
+function updateUIForLoggedUser() {
+    if (!state.currentUser) return;
+    document.getElementById('pdName').textContent = '👤 ' + state.currentUser.username;
+    document.getElementById('adminBtn').style.display = state.currentUser.role === 'admin' ? 'flex' : 'none';
+}
+
+// === НАВИГАЦИЯ ===
+function navigateTo(section) {
+    if ((section === 'chat' || section === 'admin') && !state.currentUser) {
+        openAuthModal();
+        return;
     }
-  } catch(e) { console.error('Sync error', e); }
-
-  if(state.currentUser) updateUIForLoggedUser(); 
-  updatePhoneDisplay();
-  renderGirls(); 
-  renderCatalogFilters(); 
-  renderMainHeaders(); 
-  window.addEventListener('scroll',()=>{document.getElementById('header').classList.toggle('scrolled',window.scrollY>20)}); 
-}
-
-async function loadState(){ try{ const s=localStorage.getItem('bglr_state'); if(s){ const p=JSON.parse(s); state={...state,...p} } if(!state.users||state.users.length===0)state.users=[{username:'admin',password:'admin123',role:'admin'}]; if(!state.chats)state.chats={}; }catch(e){ state.users=[{username:'admin',password:'admin123',role:'admin'}]; state.chats={}; } }
-function saveState(){ localStorage.setItem('bglr_state',JSON.stringify({ currentUser:state.currentUser, girls:state.girls, users:state.users, chats:state.chats })) }
-function confirmAge(){document.getElementById('ageModal').classList.remove('show')}
-function denyAge(){window.location.href='https://google.com'}
-function closeAgeModal(){}
-function switchAuthTab(tab){document.querySelectorAll('.auth-tab').forEach((t,i)=>{t.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1))});document.getElementById('loginForm').style.display=tab==='login'?'block':'none';document.getElementById('registerForm').style.display=tab==='register'?'block':'none'}
-function openAuthModal(){document.getElementById('authModal').classList.add('show')}
-function closeAuthModal(){document.getElementById('authModal').classList.remove('show')}
-function login(){const nick=document.getElementById('loginNick').value.trim(),pass=document.getElementById('loginPass').value.trim();if(!nick||!pass)return showToast('Заполните все поля','error');fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:nick,password:pass})}).then(res=>res.json()).then(data=>{if(data.success){state.currentUser={username:data.user.username,role:data.user.role};saveState();closeAuthModal();updateUIForLoggedUser();showToast('Добро пожаловать, '+nick+'!','success');}else{showToast(data.message||'Неверный логин или пароль','error');}}).catch(err=>{console.error('Login error:',err);showToast('Ошибка соединения','error');})}
-function register(){const nick=document.getElementById('regNick').value.trim(),pass=document.getElementById('regPass').value.trim();if(!nick||!pass)return showToast('Заполните все поля','error');if(nick.length<3)return showToast('Никнейм минимум 3 символа','error');if(pass.length<4)return showToast('Пароль минимум 4 символа','error');if(state.users.find(u=>u.username===nick))return showToast('Никнейм занят','error');state.users.push({username:nick,password:pass,role:'client'});state.currentUser={username:nick,role:'client'};saveState();closeAuthModal();updateUIForLoggedUser();showToast('Регистрация успешна!','success')}
-function logout(){state.currentUser=null;saveState();closeProfileDropdown();document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.querySelector('[data-section="girls"]').classList.add('active');state.currentSection='girls';document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-girls').classList.add('active');document.getElementById('pdName').textContent='Профиль';document.getElementById('adminBtn').style.display='none';showToast('Вы вышли','success')}
-function updateUIForLoggedUser(){document.getElementById('pdName').textContent='👤 '+state.currentUser.username;document.getElementById('adminBtn').style.display=state.currentUser.role==='admin'?'flex':'none'}
-function checkAuth(cb){if(!state.currentUser){openAuthModal();return false}cb();return true}
-function toggleProfileDropdown(){if(!state.currentUser){openAuthModal();return}document.getElementById('profileDropdown').classList.toggle('show')}
-function closeProfileDropdown(){document.getElementById('profileDropdown').classList.remove('show')}
-document.addEventListener('click',e=>{const pd=document.getElementById('profileDropdown');if(pd.classList.contains('show')&&!pd.contains(e.target)&&!e.target.closest('.header-profile-btn')){pd.classList.remove('show')}})
-function openSupport(){closeProfileDropdown();navigateTo('chat');if(state.currentUser&&!state.chats[state.currentUser.username])initChat()}
-function openAdmin(){if(state.currentUser.role!=='admin')return;closeProfileDropdown();navigateTo('admin');renderAdminGirls();renderAdminChats();startChatRefresh();startChatsUpdate()}
-function navigateTo(section){if((section==='chat'||section==='admin')&&!state.currentUser){openAuthModal();return}if(section==='chat'&&state.currentUser){if(!state.chats[state.currentUser.username])initChat();startClientChatUpdate();}document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-'+section).classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const navBtn=document.querySelector('[data-section="'+section+'"]');if(navBtn)navBtn.classList.add('active');state.currentSection=section;window.scrollTo({top:0,behavior:'smooth'});if(section!=='admin'){stopChatRefresh();stopChatsUpdate()}if(section!=='chat')stopClientChatUpdate();}
-function switchAdminTab(tabId){document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));document.querySelector('.admin-tab[onclick*="'+tabId+'"]').classList.add('active');document.getElementById(tabId).classList.add('active');if(tabId==='chats-tab'){renderAdminChats();startChatRefresh();startChatsUpdate()}else if(tabId==='girls-tab')renderAdminGirls()}
-function uploadPhoto(idx){document.querySelectorAll('#photoUploadArea .photo-slot input')[idx].click()}
-function handlePhoto(idx,input){const f=input.files[0];if(!f)return;const reader=new FileReader();reader.onload=e=>{tempPhotos[idx]=e.target.result;renderPhotoSlots()};reader.readAsDataURL(f)}
-function removePhoto(idx,e){e.stopPropagation();tempPhotos[idx]=null;renderPhotoSlots()}
-function renderPhotoSlots(){const area=document.getElementById('photoUploadArea');let html='';for(let i=0;i<4;i++){if(tempPhotos[i]){html+='<div class="photo-slot has-photo"><img src="'+tempPhotos[i]+'"><button class="remove-photo" onclick="removePhoto('+i+',event)">✕</button><input type="file" accept="image/*" style="display:none" onchange="handlePhoto('+i+',this)"></div>'}else{html+='<div class="photo-slot" onclick="uploadPhoto('+i+')"><span class="placeholder">📷<br>'+(i+1)+'</span><input type="file" accept="image/*" style="display:none" onchange="handlePhoto('+i+',this)"></div>'}}area.innerHTML=html}
-function addServiceRow(name='',price=''){const list=document.getElementById('servicesList');const div=document.createElement('div');div.className='service-item';div.innerHTML='<input type="text" class="form-input" placeholder="Название" value="'+esc(name)+'"><input type="text" class="form-input service-price" placeholder="Цена (₽)" value="'+esc(price)+'"><button class="remove-service" onclick="this.parentElement.remove()">✕</button>';list.appendChild(div)}
-function getServicesFromList(){const items=document.querySelectorAll('#servicesList .service-item');const services=[];items.forEach(item=>{const inputs=item.querySelectorAll('.form-input');const name=inputs[0].value.trim();const price=inputs[1].value.trim();if(name)services.push({name,price:price||'0'})});return services}
-
-function saveGirl(){
-  const editId=document.getElementById('editGirlId').value;
-  const name=document.getElementById('admGirlName').value.trim();
-  const city=document.getElementById('admGirlCity').value;
-  const height=document.getElementById('admGirlHeight').value.trim();
-  const weight=document.getElementById('admGirlWeight').value.trim();
-  const breast=document.getElementById('admGirlBreast').value.trim();
-  const age=document.getElementById('admGirlAge').value.trim();
-  const desc=document.getElementById('admGirlDesc').value.trim();
-  const prefs=document.getElementById('admGirlPrefs').value.trim();
-  const services=getServicesFromList();
-  const photos=tempPhotos.filter(p=>p!==null);
-  if(!name)return showToast('Введите имя','error');
-  
-  const girlData = { name, city, photos, desc, height, weight, breast, age, prefs, services };
-  
-  // Отправляем на сервер
-  fetch('/api/admin/girls', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ action: editId ? 'update' : 'add', girl: { ...girlData, _id: editId } })
-  }).then(res=>res.json()).then(data => {
-    if(data.success) {
-      showToast(editId ? 'Анкета обновлена' : 'Анкета добавлена', 'success');
-      // Обновляем локальный стейт
-      if(editId) {
-        const idx = state.girls.findIndex(g => (g._id || g.id) == editId);
-        if(idx !== -1) state.girls[idx] = { ...state.girls[idx], ...girlData, _id: data.girl._id, id: data.girl.id };
-      } else {
-        state.girls.unshift(data.girl);
-      }
-      saveState(); clearGirlForm(); renderAdminGirls(); renderGirls();
+    if (section === 'chat' && state.currentUser) {
+        loadChatHistory();
     }
-  });
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + section).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const navBtn = document.querySelector('[data-section="' + section + '"]');
+    if (navBtn) navBtn.classList.add('active');
+    state.currentSection = section;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function clearGirlForm(){document.getElementById('editGirlId').value='';document.getElementById('admGirlName').value='';document.getElementById('admGirlCity').value='Луганск';document.getElementById('admGirlHeight').value='';document.getElementById('admGirlWeight').value='';document.getElementById('admGirlBreast').value='';document.getElementById('admGirlAge').value='';document.getElementById('admGirlDesc').value='';document.getElementById('admGirlPrefs').value='';document.getElementById('servicesList').innerHTML='';tempPhotos=[null,null,null,null];renderPhotoSlots()}
-function editGirl(id){const g=state.girls.find(x=>(x._id||x.id)==id);if(!g)return;document.getElementById('editGirlId').value=g._id||g.id;document.getElementById('admGirlName').value=g.name;document.getElementById('admGirlCity').value=g.city;document.getElementById('admGirlHeight').value=g.height||'';document.getElementById('admGirlWeight').value=g.weight||'';document.getElementById('admGirlBreast').value=g.breast||'';document.getElementById('admGirlAge').value=g.age||'';document.getElementById('admGirlDesc').value=g.desc||'';document.getElementById('admGirlPrefs').value=g.prefs||'';document.getElementById('servicesList').innerHTML='';tempPhotos=[null,null,null,null];if(g.photos&&g.photos.length>0)for(let i=0;i<g.photos.length&&i<4;i++)tempPhotos[i]=g.photos[i];renderPhotoSlots();if(g.services&&g.services.length>0)g.services.forEach(s=>addServiceRow(s.name,s.price));else addServiceRow();document.getElementById('sec-admin').scrollIntoView({behavior:'smooth'})}
-function deleteGirl(id){if(!confirm('Удалить эту анкету?'))return; 
-  fetch('/api/admin/girls', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'delete', girl: { _id: id } }) })
-  .then(()=>{ state.girls=state.girls.filter(g=>(g._id||g.id)!=id); saveState(); renderAdminGirls(); renderGirls(); showToast('Анкета удалена','success'); });
-}
-function renderAdminGirls(){const list=document.getElementById('adminGirlsList');if(state.girls.length===0){list.innerHTML='<div class="empty-state"><p>Нет анкет</p></div>';return}list.innerHTML=state.girls.map(g=>{const pc=(g.photos||[]).length,sc=(g.services||[]).length;return '<div class="admin-list-item"><div class="info"><h4>'+g.name+' — '+g.city+'</h4><p>📏 '+g.height+'см • ⚖️ '+g.weight+'кг • 👙 '+g.breast+' • 🎂 '+g.age+' лет • 📷 '+pc+' • 📋 '+sc+'</p></div><div class="actions"><button class="edit-btn" onclick="editGirl(\''+(g._id||g.id)+'\')">✏️</button><button class="delete-btn" onclick="deleteGirl(\''+(g._id||g.id)+'\')">🗑️</button></div></div>'}).join('')}
-
-async function loadSiteSettings(){ try{ const res=await fetch('/api/settings'); if(res.ok){ const s=await res.json(); state.settings=s; document.getElementById('admMainTitle').value=s.mainTitle||''; document.getElementById('admMainSubtitle').value=s.mainSubtitle||''; document.getElementById('admSiteTitle').value=s.title||''; document.getElementById('admSiteDesc').value=s.desc||''; document.getElementById('admSitePhone').value=s.phone||''; updatePhoneDisplay(); renderMainHeaders(); } }catch(e){console.error('Failed to load settings',e)} }
-async function saveSiteSettings(){ const settings={ mainTitle:document.getElementById('admMainTitle').value, mainSubtitle:document.getElementById('admMainSubtitle').value, title:document.getElementById('admSiteTitle').value, desc:document.getElementById('admSiteDesc').value, phone:document.getElementById('admSitePhone').value }; try{ const res=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)}); if(res.ok){ state.settings=settings; renderMainHeaders(); document.title=settings.title; showToast('Настройки сохранены','success'); }else{showToast('Ошибка сохранения','error')} }catch(e){showToast('Ошибка соединения','error')} }
-function renderMainHeaders(){ const t=document.getElementById('mainHeaderTitle'); const s=document.getElementById('mainHeaderSubtitle'); if(t)t.textContent=state.settings.mainTitle; if(s)s.textContent=state.settings.mainSubtitle; }
-function updatePhoneDisplay(){ const el = document.getElementById('catalogPhone'); const link = document.getElementById('catalogPhoneLink'); if(state.settings.phone){ el.style.display = 'block'; link.textContent = '📞 ' + state.settings.phone; link.href = 'tel:' + state.settings.phone.replace(/\s/g,''); } else { el.style.display = 'none'; } }
-
-function startChatsUpdate(){ if(state.chatsUpdateInterval)clearInterval(state.chatsUpdateInterval); state.chatsUpdateInterval=setInterval(async ()=>{ if(state.currentSection==='admin'){ try{ const res=await fetch('/api/admin/chats'); if(res.ok){ const chats=await res.json(); const newCount=chats.filter(c=>c.waitingForOperator || (c.messages.length>0 && c.messages[c.messages.length-1].type==='user')).length; chats.forEach(chat=>{ const oldChat=state.chats[chat.userId]; state.chats[chat.userId]=chat; if(oldChat && chat.messages.length > oldChat.messages.length){ playNotificationSound(); showNotification('Новое сообщение от '+chat.userId); } }); updateChatsBadge(newCount); renderAdminChats(); if(state.adminChatWith && state.chats[state.adminChatWith]){ renderAdminChatMessages(); } } }catch(e){} } }, 5000); }
-function stopChatsUpdate(){ if(state.chatsUpdateInterval){clearInterval(state.chatsUpdateInterval);state.chatsUpdateInterval=null} }
-function updateChatsBadge(count){ const badge=document.getElementById('chatsBadge'); const profileBadge=document.getElementById('notificationBadge'); if(count>0){ badge.textContent=count; badge.style.display='inline'; profileBadge.textContent=count; profileBadge.style.display='inline'; }else{ badge.style.display='none'; profileBadge.style.display='none'; } }
-function playNotificationSound(){ const audio=new Audio('audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ4PVqzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unEiBC13yO/eizEIHWq+8+OZUQ4OVKzn8K1hGgU7k9n1unE......'); audio.play().catch(()=>{}); }
-function showNotification(text){ showToast('🔔 '+text,'success'); }
-
-async function sendMessage(){ const inp=document.getElementById('chatInput'),text=inp.value.trim(); if(!text)return; checkAuth(async ()=>{ const uid=state.currentUser.username; if(!state.chats[uid])state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; state.chats[uid].messages.push({type:'user',text,time:Date.now()}); saveState(); window.renderChat(); inp.value=''; try{ const res=await fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) }); if(res.ok){ const data=await res.json(); if(data.reply){ state.chats[uid].messages.push({ type:'bot', text:data.reply.text, extra:data.reply, time:Date.now() }); saveState(); window.renderChat(); } } }catch(e){ console.error('Failed to send message:',e); showToast('Ошибка отправки','error'); } }); }
-
-async function initChat(girlId = null){
-  if(!state.currentUser) return;
-  const uid = state.currentUser.username;
-  if(girlId){
-    try{
-      console.log('Init chat with girl ID:', girlId);
-      const res = await fetch('/api/chat/init', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: uid, girlId: girlId}) });
-      if(res.ok){
-        const data = await res.json();
-        state.chats[uid] = { messages: data.messages, waitingForOperator: false, botEnabled: true, botStep: 'girl_selected', selectedGirl: data.messages.find(m => m.extra?.type === 'services')?.extra?.girl || null };
-        saveState(); window.renderChat();
-      } else { const err = await res.json(); console.error('Init chat error:', err); showToast('Ошибка: ' + (err.error || err.details), 'error'); }
-    } catch(e){ console.error('Init chat error:', e); showToast('Ошибка соединения', 'error'); }
-  } else {
-    try{ const res=await fetch(`/api/chat/${uid}`); if(res.ok){ const data=await res.json(); if(data.messages && data.messages.length>0){ state.chats[uid]={ messages:data.messages, waitingForOperator:data.messages.some(m=>m.type==='user'&&m.text&&!m.text.includes('[Оператор]')), botEnabled:true, botStep:'greet', selectedGirl:null }; }else{ state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Чем могу помочь?'); window.addBotMessage(uid,'Напишите ваш город, и я подберу для вас лучшую анкету.'); } } }catch(e){ if(!state.chats[uid]){ state.chats[uid]={messages:[],waitingForOperator:false,botEnabled:true,botStep:'greet',selectedGirl:null}; window.addBotMessage(uid,'Здравствуйте! 👋 Напишите город.'); } }
-  }
-  saveState(); window.renderChat();
+// === ЧАТ (КЛИЕНТ) ===
+function loadChatHistory() {
+    if (!state.currentUser) return;
+    const uid = state.currentUser.username;
+    fetch(`/api/chat/${uid}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.messages && data.messages.length > 0) {
+            state.chats[uid] = { messages: data.messages };
+        } else {
+            state.chats[uid] = { messages: [] };
+            sendMessageToBot(''); 
+        }
+        renderMessages(uid);
+    });
 }
 
-function startClientChatUpdate(){ if(!state.currentUser)return; if(state.clientChatInterval)clearInterval(state.clientChatInterval); state.clientChatInterval=setInterval(async ()=>{ const uid=state.currentUser.username; try{ const res=await fetch(`/api/chat/${uid}`); if(res.ok){ const data=await res.json(); if(data.messages && data.messages.length>(state.chats[uid]?.messages.length||0)){ state.chats[uid].messages=data.messages; saveState(); window.renderChat(); } } }catch(e){} },3000); }
-function stopClientChatUpdate(){ if(state.clientChatInterval){clearInterval(state.clientChatInterval);state.clientChatInterval=null} }
+async function sendMessage() {
+    const inp = document.getElementById('chatInput');
+    const text = inp.value.trim();
+    if (!text || !state.currentUser) return;
 
-function renderAdminChats(){ const list=document.getElementById('adminChatList'); const userIds=Object.keys(state.chats); if(userIds.length===0){list.innerHTML='<div class="empty-state"><div class="icon">💬</div><p>Чатов пока нет</p></div>';return} list.innerHTML=userIds.map(uid=>{ const ch=state.chats[uid]; const lastMsg=ch.messages[ch.messages.length-1]; const lastText=lastMsg?(lastMsg.type==='bot'?'🤖 ':'')+((lastMsg.text||'').substring(0,50)):''; const bs=ch.botEnabled!==false?'Вкл':'Выкл',bc=ch.botEnabled!==false?'bot-on':''; const wc=ch.waitingForOperator?'waiting':'',sc=ch.waitingForOperator?'waiting':(ch.messages.length>2?'active':'idle'); const st=ch.waitingForOperator?'⏳ Ожидание':'✅ Активен'; const hasNewMsg=ch.waitingForOperator || (lastMsg && lastMsg.type==='user'); return '<div class="chat-item '+wc+(hasNewMsg?' new-message':'')+'"><div class="chat-item-header"><h4>👤 '+uid+'</h4><span class="status '+sc+'">'+st+'</span></div><div class="chat-item-preview">'+lastText+'</div><div class="chat-item-actions"><button class="open-chat" onclick="openAdminChatWith(\''+uid+'\')">💬 Чат</button><button class="toggle-bot '+bc+'" onclick="toggleChatBot(\''+uid+'\')">🤖 '+bs+'</button><button class="clear-chat" onclick="clearSingleChat(\''+uid+'\')">🗑️</button><button class="delete-btn" onclick="deleteChat(\''+uid+'\')" title="Удалить чат">❌</button></div></div>'; }).join(''); }
-function toggleChatBot(uid){ if(!state.chats[uid])return; state.chats[uid].botEnabled=!state.chats[uid].botEnabled; saveState(); renderAdminChats(); showToast('Бот '+(state.chats[uid].botEnabled?'включён':'выключен')+' для '+uid,'success'); }
-function openAdminChatWith(uid){ state.adminChatWith=uid; document.getElementById('adminChatTitle').textContent='💬 Чат с '+uid; renderAdminChatMessages(); document.getElementById('adminChatModal').classList.add('show'); if(state.adminChatInterval)clearInterval(state.adminChatInterval); state.adminChatInterval=setInterval(()=>{loadState();renderAdminChatMessages()},2000); }
-function renderAdminChatMessages(){ const uid=state.adminChatWith; if(!uid)return; loadState(); const ch=state.chats[uid]; if(!ch)return; const c=document.getElementById('adminChatMessages'); let h=''; ch.messages.forEach(msg=>{ if(msg.type==='user')h+='<div class="chat-msg user">'+esc(msg.text)+'</div>'; else if(msg.type==='bot')h+='<div class="chat-msg bot">'+formatBotMessage(msg)+'</div>'; else h+='<div class="chat-msg system">'+esc(msg.text)+'</div>'; }); c.innerHTML=h; c.scrollTop=c.scrollHeight; }
-function closeAdminChat(){ document.getElementById('adminChatModal').classList.remove('show'); if(state.adminChatInterval)clearInterval(state.adminChatInterval); state.adminChatInterval=null; state.adminChatWith=null; }
-function startChatRefresh(){ if(state.chatRefreshInterval)clearInterval(state.chatRefreshInterval); state.chatRefreshInterval=setInterval(()=>{ if(state.currentSection==='admin'){ const at=document.querySelector('.admin-tab.active'); if(at&&at.textContent.includes('Чаты'))renderAdminChats(); } },3000); }
-function stopChatRefresh(){ if(state.chatRefreshInterval){clearInterval(state.chatRefreshInterval);state.chatRefreshInterval=null} }
-function sendBotOrderMessage(girl){ const uid=state.currentUser.username; if(!state.chats[uid])initChat(); state.chats[uid].selectedGirl=girl; state.chats[uid].botStep='order'; state.chats[uid].botEnabled=true; saveState(); window.addBotMessage(uid,'Здравствуйте, '+uid+'! 👋 Вы выбрали:'); window.addBotMessage(uid,'',{type:'profile',girl}); window.addBotMessage(uid,'💰 Оплата девушке в руки\nНажмите на выбранную услугу:',{type:'services',girl}); }
-function formatBotMessage(msg){ let h=esc(msg.text).replace(/\n/g,'<br>'); if(!msg.extra)return h; if(msg.extra.type==='profile'||msg.extra.type==='order_greeting'){ if(msg.extra.type==='order_greeting')h=''; const g=msg.extra.girl; const mp=(g.photos&&g.photos[0])||''; const ih=mp?'<img class="msg-profile-img" src="'+mp+'">':'<div class="msg-profile-img-placeholder">👩</div>'; h+='<div class="msg-profile">'+ih+'<div class="msg-profile-info"><h4>'+g.name+' • '+g.city+'</h4><div class="price">'+g.services.map(s=>s.name+': '+s.price+'₽').join(', ')+'</div><div class="pay-note">💰 Оплата девушке в руки</div></div></div>'; } if(msg.extra.type==='services'){ const g=msg.extra.girl; h+='<div class="msg-services">'+g.services.map(s=>'<button class="msg-service-btn" onclick="selectService(\''+g.name+'\',\''+s.name+'\',\''+s.price+'\')">'+s.name+' — '+s.price+'₽</button>').join('')+'</div>'; } if(msg.extra.type==='girls_list'){ h+='<div class="msg-services">'+msg.extra.girls.map(g=>'<button class="msg-service-btn" onclick="selectGirlByName(\''+g.name+'\')">'+g.name+' — '+g.city+'</button>').join('')+'</div>'; } return h; }
-function selectService(gn,sn,sp){ if(!state.currentUser)return; const uid=state.currentUser.username; const text = gn+' — '+sn+': '+sp+'₽'; fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:text}) }).then(res => res.json()).then(data => { if(data.reply){ window.addUserMessage(uid, text); window.addBotMessage(uid, data.reply.text, data.reply); saveState(); window.renderChat(); } }).catch(err => console.error('Error:', err)); }
-function selectGirlByName(n){ if(!state.currentUser)return; const uid=state.currentUser.username; fetch('/api/chat/send',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:uid,text:n}) }); window.addUserMessage(uid,n); }
-function renderCatalogFilters(){ const c=document.getElementById('catalogFilters'); let h='<button class="filter-btn '+(state.currentCityFilter==='all'?'active':'')+'" onclick="filterCity(\'all\')">Все</button>'; CITIES.forEach(city=>{h+='<button class="filter-btn '+(state.currentCityFilter===city?'active':'')+'" onclick="filterCity(\''+city+'\')">'+city+'</button>'}); c.innerHTML=h; }
-function filterCity(city){ state.currentCityFilter=city; renderCatalogFilters(); renderGirls(); }
-function getFilteredGirls(){ return state.currentCityFilter==='all'?state.girls:state.girls.filter(g=>g.city===state.currentCityFilter); }
-function renderGirls(){ const girls=getFilteredGirls(),grid=document.getElementById('girlsGrid'); if(girls.length===0){grid.innerHTML='<div class="empty-state"><div class="icon">😔</div><p>Анкет пока нет</p></div>';return} grid.innerHTML=girls.map(g=>createGirlCard(g)).join(''); }
+    const uid = state.currentUser.username;
+    if (!state.chats[uid]) state.chats[uid] = { messages: [] };
 
-function createGirlCard(g){
-  const cardId = g._id || g.id;
-  const mp=(g.photos&&g.photos[0])||'';
-  const ih=mp?'<img class="girl-card-img" src="'+mp+'" alt="'+g.name+'">':'<div class="girl-card-img-placeholder">👩</div>';
-  return '<div class="girl-card" onclick="openProfile(\''+cardId+'\')">'+ih+'<div class="girl-card-info"><div class="girl-card-top"><span class="girl-card-name">'+g.name+'</span><span class="girl-card-city">'+g.city+'</span></div><p class="girl-card-desc">'+g.desc+'</p><div class="girl-card-stats"><span class="stat-tag">📏 '+g.height+' см</span><span class="stat-tag">⚖️ '+g.weight+' кг</span><span class="stat-tag">👙 '+g.breast+'</span><span class="stat-tag">🎂 '+g.age+' лет</span></div><div class="girl-card-payment">💰 Оплата девушкам в руки</div><div class="girl-card-actions"><button class="btn-open" onclick="event.stopPropagation();openProfile(\''+cardId+'\')">Открыть анкету</button><button class="btn-order" onclick="event.stopPropagation();orderGirl(\''+cardId+'\')">Заказать</button></div></div></div>';
+    state.chats[uid].messages.push({ type: 'user', text, time: new Date() });
+    saveState();
+    renderMessages(uid);
+    inp.value = '';
+
+    try {
+        const res = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: uid, text: text })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.reply) {
+                state.chats[uid].messages.push({ type: 'bot', text: data.reply.text, extra: data.reply, time: new Date() });
+                saveState();
+                renderMessages(uid);
+            } else {
+                fetch(`/api/chat/${uid}`).then(r=>r.json()).then(d => {
+                    state.chats[uid].messages = d.messages;
+                    saveState();
+                    renderMessages(uid);
+                });
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Ошибка отправки', 'error');
+    }
 }
 
-function openProfile(id){
-  const g = state.girls.find(x => (x._id || x.id) == id);
-  if(!g) return;
-  const mp=(g.photos&&g.photos[0])||'';
-  const ih=mp?'<img class="profile-modal-img" src="'+mp+'" alt="'+g.name+'">':'<div class="profile-modal-img-placeholder">👩</div>';
-  const sH=(g.services||[]).map(s=>'<div class="profile-service"><span class="name">'+s.name+'</span><span class="price">'+s.price+'₽</span></div>').join('');
-  document.getElementById('profileContent').innerHTML=ih+'<div class="profile-detail"><h2>'+g.name+'</h2><div class="city">📍 '+g.city+'</div><p class="desc">'+g.desc+'</p><div class="section-title">Характеристики</div><div class="profile-stats-grid"><div class="profile-stat"><div class="label">Рост</div><div class="value">'+g.height+' см</div></div><div class="profile-stat"><div class="label">Вес</div><div class="value">'+g.weight+' кг</div></div><div class="profile-stat"><div class="label">Грудь</div><div class="value">'+g.breast+'</div></div><div class="profile-stat"><div class="label">Возраст</div><div class="value">'+g.age+' лет</div></div></div><div class="section-title">Предпочтения</div><p class="desc">'+g.prefs+'</p><div class="section-title">Услуги</div><div class="profile-services">'+sH+'</div><div class="profile-payment">💰 Оплата девушкам в руки</div><button class="profile-order-btn" onclick="orderGirl(\''+(g._id||g.id)+'\');closeProfileModal()">Заказать</button></div>';
-  document.getElementById('profileModal').classList.add('show');
+function sendMessageToBot(text) {
+    if (!state.currentUser) return;
+    const uid = state.currentUser.username;
+    
+    fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uid, text: text || 'Привет' })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.reply) {
+            if (!state.chats[uid]) state.chats[uid] = { messages: [] };
+            fetch(`/api/chat/${uid}`).then(r=>r.json()).then(d => {
+                state.chats[uid].messages = d.messages;
+                saveState();
+                renderMessages(uid);
+            });
+        }
+    });
 }
-function closeProfileModal(){document.getElementById('profileModal').classList.remove('show')}
 
-function orderGirl(id){
-  checkAuth(()=>{
+function renderMessages(uid) {
+    const chat = state.chats[uid];
+    if (!chat) return;
+
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = '';
+    
+    const indicator = document.getElementById('chatIndicator');
+    const isWaiting = chat.messages.some(m => m.extra && m.extra.type === 'processing');
+    indicator.classList.toggle('show', isWaiting);
+
+    chat.messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `chat-msg ${msg.type}`;
+
+        if (msg.type === 'user') {
+            div.textContent = msg.text;
+        } else if (msg.type === 'bot') {
+            div.innerHTML = formatBotMessage(msg);
+        } else {
+            div.textContent = msg.text;
+        }
+        container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+}
+
+function formatBotMessage(msg) {
+    let html = (msg.text || '').replace(/\n/g, '<br>');
+    if (!msg.extra) return html;
+
+    if (msg.extra.type === 'profile') {
+        const g = msg.extra.girl;
+        if (!g) return html;
+        const mp = (g.photos && g.photos[0]) || '';
+        const imgHtml = mp ? `<img class="msg-profile-img" src="${mp}">` : '<div class="msg-profile-img-placeholder">👩</div>';
+        
+        html += `<div class="msg-profile">
+            ${imgHtml}
+            <div class="msg-profile-info">
+                <h4>${g.name} • ${g.city}</h4>
+                <div class="price">${g.services.map(s => s.name + ': ' + s.price + '₽').join(', ')}</div>
+                <div class="pay-note">💰 Оплата девушке в руки</div>
+            </div>
+        </div>`;
+    }
+
+    if (msg.extra.type === 'services') {
+        const g = msg.extra.girl;
+        if (g && g.services) {
+            html += '<div class="msg-services">' + g.services.map(s => 
+                `<button class="msg-service-btn" onclick="selectService('${g.name.replace(/'/g, "\\'")}', '${s.name.replace(/'/g, "\\'")}', '${s.price}')">${s.name} — ${s.price}₽</button>`
+            ).join('') + '</div>';
+        }
+    }
+
+    if (msg.extra.type === 'girls_list') {
+        const girls = msg.extra.girls;
+        if (girls) {
+            html += '<div class="msg-services">' + girls.map(g => 
+                `<button class="msg-service-btn" onclick="selectGirlByName('${g.name.replace(/'/g, "\\'")}')">${g.name} — ${g.city}</button>`
+            ).join('') + '</div>';
+        }
+    }
+
+    return html;
+}
+
+function selectService(girlName, serviceName, price) {
+    const text = `${girlName} — ${serviceName}: ${price}₽`;
+    const inp = document.getElementById('chatInput');
+    inp.value = text;
+    sendMessage();
+}
+
+function selectGirlByName(name) {
+    const inp = document.getElementById('chatInput');
+    inp.value = name;
+    sendMessage();
+}
+
+// === БЫСТРЫЙ ЗАКАЗ (ИЗ КАТАЛОГА) ===
+function orderGirl(id) {
+    if (!state.currentUser) {
+        openAuthModal();
+        return;
+    }
+    
     const g = state.girls.find(x => (x._id || x.id) == id);
-    if(!g) return;
+    if (!g) {
+        console.error('Girl not found with ID:', id);
+        return;
+    }
+
     navigateTo('chat');
-    setTimeout(()=>initChat(g._id || g.id), 300);
-  });
+    
+    const uid = state.currentUser.username;
+    fetch('/api/chat/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uid, girlId: g._id || g.id })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            state.chats[uid] = { messages: data.messages };
+            saveState();
+            renderMessages(uid);
+        } else {
+            showToast('Ошибка заказа: ' + (data.error || 'Unknown'), 'error');
+        }
+    })
+    .catch(e => {
+        console.error(e);
+        showToast('Ошибка соединения', 'error');
+    });
 }
 
-function openCitiesModal(){ if(!state.currentUser){openAuthModal();return} const list=document.getElementById('citiesList'); list.innerHTML=CITIES.map(city=>{ const cnt=state.girls.filter(g=>g.city===city).length; return '<div class="city-item" onclick="selectCity(\''+city+'\')"><span class="name">'+city+'</span><span class="count">'+cnt+' анкет</span></div>'; }).join(''); document.getElementById('citiesModal').classList.add('show'); }
-function selectCity(city){ closeCitiesModal(); state.currentCityFilter=city; renderCatalogFilters(); renderGirls(); navigateTo('girls'); }
-function closeCitiesModal(){document.getElementById('citiesModal').classList.remove('show')}
-function openPrivacyPolicy(){document.getElementById('privacyModal').classList.add('show')}
-function closePrivacyPolicy(){document.getElementById('privacyModal').classList.remove('show')}
-function esc(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
-function showToast(msg,type){ const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},3000); }
+// === КАТАЛОГ ===
+function renderGirls() {
+    const girls = getFilteredGirls();
+    const grid = document.getElementById('girlsGrid');
+    if (girls.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><div class="icon">😔</div><p>Анкет пока нет</p></div>';
+        return;
+    }
+    grid.innerHTML = girls.map(g => createGirlCard(g)).join('');
+}
 
+function createGirlCard(g) {
+    const cardId = g._id || g.id;
+    const mp = (g.photos && g.photos[0]) || '';
+    const ih = mp ? `<img class="girl-card-img" src="${mp}" alt="${g.name}">` : '<div class="girl-card-img-placeholder">👩</div>';
+    
+    return `<div class="girl-card" onclick="openProfile('${cardId}')">
+        ${ih}
+        <div class="girl-card-info">
+            <div class="girl-card-top"><span class="girl-card-name">${g.name}</span><span class="girl-card-city">${g.city}</span></div>
+            <p class="girl-card-desc">${g.desc}</p>
+            <div class="girl-card-stats">
+                <span class="stat-tag">📏 ${g.height} см</span>
+                <span class="stat-tag">⚖️ ${g.weight} кг</span>
+                <span class="stat-tag">👙 ${g.breast}</span>
+                <span class="stat-tag">🎂 ${g.age} лет</span>
+            </div>
+            <div class="girl-card-payment">💰 Оплата девушкам в руки</div>
+            <div class="girl-card-actions">
+                <button class="btn-open" onclick="event.stopPropagation();openProfile('${cardId}')">Открыть анкету</button>
+                <button class="btn-order" onclick="event.stopPropagation();orderGirl('${cardId}')">Заказать</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function openProfile(id) {
+    const g = state.girls.find(x => (x._id || x.id) == id);
+    if (!g) return;
+    
+    const cardId = g._id || g.id;
+    const mp = (g.photos && g.photos[0]) || '';
+    const ih = mp ? `<img class="profile-modal-img" src="${mp}" alt="${g.name}">` : '<div class="profile-modal-img-placeholder">👩</div>';
+    const sH = (g.services || []).map(s => `<div class="profile-service"><span class="name">${s.name}</span><span class="price">${s.price}₽</span></div>`).join('');
+
+    document.getElementById('profileContent').innerHTML = `
+        ${ih}
+        <div class="profile-detail">
+            <h2>${g.name}</h2>
+            <div class="city">📍 ${g.city}</div>
+            <p class="desc">${g.desc}</p>
+            <div class="section-title">Характеристики</div>
+            <div class="profile-stats-grid">
+                <div class="profile-stat"><div class="label">Рост</div><div class="value">${g.height} см</div></div>
+                <div class="profile-stat"><div class="label">Вес</div><div class="value">${g.weight} кг</div></div>
+                <div class="profile-stat"><div class="label">Грудь</div><div class="value">${g.breast}</div></div>
+                <div class="profile-stat"><div class="label">Возраст</div><div class="value">${g.age} лет</div></div>
+            </div>
+            <div class="section-title">Предпочтения</div>
+            <p class="desc">${g.prefs}</p>
+            <div class="section-title">Услуги</div>
+            <div class="profile-services">${sH}</div>
+            <div class="profile-payment">💰 Оплата девушкам в руки</div>
+            <button class="profile-order-btn" onclick="orderGirl('${cardId}');closeProfileModal()">Заказать</button>
+        </div>`;
+    document.getElementById('profileModal').classList.add('show');
+}
+
+function getFilteredGirls() {
+    return state.currentCityFilter === 'all' ? state.girls : state.girls.filter(g => g.city === state.currentCityFilter);
+}
+
+function renderCatalogFilters() {
+    const c = document.getElementById('catalogFilters');
+    let h = `<button class="filter-btn ${state.currentCityFilter === 'all' ? 'active' : ''}" onclick="filterCity('all')">Все</button>`;
+    CITIES.forEach(city => {
+        h += `<button class="filter-btn ${state.currentCityFilter === city ? 'active' : ''}" onclick="filterCity('${city}')">${city}</button>`;
+    });
+    c.innerHTML = h;
+}
+
+function filterCity(city) {
+    state.currentCityFilter = city;
+    renderCatalogFilters();
+    renderGirls();
+}
+
+// === АДМИН ПАНЕЛЬ ===
+window.sendAdminReply = async function() {
+    const inp = document.getElementById('adminChatInput');
+    const text = inp.value.trim();
+    if (!text || !state.adminChatWith) return;
+    
+    const uid = state.adminChatWith;
+    
+    try {
+        const res = await fetch('/api/admin/chat/reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: uid, text: text })
+        });
+        
+        if (res.ok) {
+            inp.value = '';
+            renderAdminChats();
+            loadAdminChat(uid);
+            showToast('Ответ отправлен', 'success');
+        }
+    } catch (e) {
+        showToast('Ошибка отправки', 'error');
+    }
+};
+
+window.clearChatHistory = async function() {
+    if (!state.adminChatWith) return;
+    const uid = state.adminChatWith;
+    try {
+        await fetch(`/api/admin/chat/${uid}/clear`, { method: 'PUT' });
+        loadAdminChat(uid);
+        renderAdminChats();
+        showToast('Чат очищен', 'success');
+    } catch (e) { showToast('Ошибка', 'error'); }
+};
+
+window.resetClientBot = function() {
+    if (!state.adminChatWith) return;
+    const uid = state.adminChatWith;
+    fetch(`/api/admin/chat/${uid}/clear`, { method: 'PUT' }).then(() => {
+        loadAdminChat(uid);
+        renderAdminChats();
+        showToast('Заказ завершен, бот сброшен', 'success');
+    });
+};
+
+window.deleteChat = async function(uid) {
+    if (!confirm('Удалить чат с ' + uid + '?')) return;
+    try {
+        await fetch(`/api/admin/chat/${uid}`, { method: 'DELETE' });
+        closeAdminChat();
+        renderAdminChats();
+        showToast('Чат удален', 'success');
+    } catch (e) { showToast('Ошибка', 'error'); }
+};
+
+function renderAdminChats() {
+    fetch('/api/admin/chats')
+    .then(res => res.json())
+    .then(chats => {
+        const list = document.getElementById('adminChatList');
+        if (!chats || chats.length === 0) {
+            list.innerHTML = '<div class="empty-state"><div class="icon">💬</div><p>Чатов пока нет</p></div>';
+            return;
+        }
+        
+        list.innerHTML = chats.map(c => {
+            const lastMsg = c.messages[c.messages.length - 1];
+            const lastText = lastMsg ? (lastMsg.text || '').substring(0, 40) : '';
+            const isWaiting = c.waitingForOperator;
+            const statusClass = isWaiting ? 'waiting' : 'active';
+            const statusText = isWaiting ? '⏳ Ожидание' : '✅ Активен';
+            
+            return `<div class="chat-item ${isWaiting ? 'new-message' : ''}">
+                <div class="chat-item-header">
+                    <h4>👤 ${c.userId}</h4>
+                    <span class="status ${statusClass}">${statusText}</span>
+                </div>
+                <div class="chat-item-preview">${lastText}</div>
+                <div class="chat-item-actions">
+                    <button class="open-chat" onclick="openAdminChatWith('${c.userId}')">💬 Чат</button>
+                    <button class="clear-chat" onclick="window.clearChatHistory('${c.userId}')">🗑️</button>
+                </div>
+            </div>`;
+        }).join('');
+    });
+}
+
+function openAdminChatWith(uid) {
+    state.adminChatWith = uid;
+    document.getElementById('adminChatTitle').textContent = '💬 Чат с ' + uid;
+    document.getElementById('adminChatModal').classList.add('show');
+    loadAdminChat(uid);
+    
+    if (state.adminChatInterval) clearInterval(state.adminChatInterval);
+    state.adminChatInterval = setInterval(() => loadAdminChat(uid), 2000);
+}
+
+function loadAdminChat(uid) {
+    fetch(`/api/chat/${uid}`)
+    .then(res => res.json())
+    .then(data => {
+        const container = document.getElementById('adminChatMessages');
+        container.innerHTML = '';
+        data.messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `chat-msg ${msg.type}`;
+            if (msg.type === 'user') div.textContent = msg.text;
+            else if (msg.type === 'bot') div.innerHTML = formatBotMessage(msg);
+            else div.textContent = msg.text;
+            container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function closeAdminChat() {
+    document.getElementById('adminChatModal').classList.remove('show');
+    if (state.adminChatInterval) clearInterval(state.adminChatInterval);
+    state.adminChatWith = null;
+}
+
+// === УТИЛИТЫ ===
+function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function esc(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+// === ЗАПУСК ===
 init();
 </script>
 </body>
